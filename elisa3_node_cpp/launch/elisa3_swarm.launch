@@ -1,0 +1,50 @@
+<launch>
+	<arg name="robots_config_file"
+	default="$(find mocap_optitrack)/config/mocap.yaml" />
+
+	<arg name="base_tag" default="elisa3_robot"/>
+	<arg name="xpos" default="0.0"/>
+	<arg name="ypos" default="0.0"/>
+	<arg name="theta" default="0.0"/>
+	<arg name="is_single_robot" default="1"/>
+		<!-- ************************* -->
+		<!-- Sensor enabling/disabling -->
+		<!-- ************************* -->
+	<arg name="acc_en" default="true"/>
+	<arg name="prox_en" default="false"/>
+	<arg name="mot_pos_en" default="true"/>
+	<arg name="floor_en" default="false"/>
+   
+		<!-- *************************** -->
+		<!-- Pass the params to the node -->
+		<!-- *************************** -->
+    <node pkg="elisa3_node_cpp" type="elisa3_node_cpp" name="swarm" output="screen">
+        <param name="base_tag" value="$(arg base_tag)"/>
+        <param name="accelerometer" value="$(arg acc_en)"/>
+        <param name="proximity" value="$(arg prox_en)"/>
+        <param name="motor_position" value="$(arg mot_pos_en)"/>
+        <param name="floor" value="$(arg floor_en)"/>
+
+    	<rosparam file="$(arg robots_config_file)" command="load" />
+    </node>
+    
+        <!-- <param name="robot_description" textfile="$(find elisa3_node_cpp)/urdf/elisa3_urdf.xml"/> -->
+
+        <!-- <node name="elisa3_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+            <param name="tf_prefix" value="elisa3_robot_0" />
+        </node>
+
+        <node name="elisa3_state_publisher2" pkg="robot_state_publisher" type="robot_state_publisher">
+            <param name="tf_prefix" value="elisa3_robot_1" />
+        </node>
+
+        <node name="elisa3_state_publisher3" pkg="robot_state_publisher" type="robot_state_publisher">
+            <param name="tf_prefix" value="elisa3_robot_2" />
+        </node> -->
+        <node pkg="elisa3_node_cpp" type="elisa3_odom_filter" name="listener" >
+        <rosparam file="$(arg robots_config_file)" command="load" />
+        </node>
+        
+        <!-- <node if="$(arg is_single_robot)" pkg="rviz" type="rviz" output="screen" name="rviz" args="-d $(find elisa3_node_cpp)/config/elisa3_swarm_rviz.rviz"/>  -->
+
+</launch>

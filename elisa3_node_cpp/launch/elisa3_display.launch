@@ -1,0 +1,39 @@
+<launch>
+
+    <arg name="elisa3_address" default="3467"/>
+    <arg name="elisa3_name" default="elisa3_robot_0"/>
+    <arg name="is_single_robot" default="1" />
+    <arg name="xpos" default="0.0"/>
+    <arg name="ypos" default="0.0"/>
+    <arg name="theta" default="0.0"/>
+		<!-- ************************* -->
+		<!-- Sensor enabling/disabling -->
+		<!-- ************************* -->
+    <arg name="acc_en" default="true"/>
+    <arg name="prox_en" default="true"/>
+    <arg name="mot_pos_en" default="true"/>
+    <arg name="floor_en" default="true"/>
+   
+		<!-- *************************** -->
+		<!-- Pass the params to the node -->
+		<!-- *************************** -->
+    <node pkg="elisa3_node_cpp" type="elisa3_node_cpp" name="$(arg elisa3_name)" output="screen">
+        <param name="elisa3_address" value="$(arg elisa3_address)"/>
+        <param name="elisa3_name" value="$(arg elisa3_name)"/>
+        <param name="xpos" value="$(arg xpos)"/>
+				<param name="ypos" value="$(arg ypos)"/>
+				<param name="theta" value="$(arg theta)"/> 
+        <param name="accelerometer" value="$(arg acc_en)"/>
+        <param name="proximity" value="$(arg prox_en)"/>
+        <param name="motor_position" value="$(arg mot_pos_en)"/>
+        <param name="floor" value="$(arg floor_en)"/>
+    </node>
+    
+    <param name="robot_description" textfile="$(find elisa3_node_cpp)/urdf/elisa3_urdf.xml"/>
+    <node name="elisa3_state_publisher" pkg="robot_state_publisher" type="state_publisher">
+        <param name="tf_prefix" value="$(arg elisa3_name)" />
+    </node>
+
+    <node if="$(arg is_single_robot)" pkg="rviz" type="rviz" output="screen" name="rviz" args="-d $(find elisa3_node_cpp)/config/elisa3_display_rviz.rviz"/>
+
+</launch>

@@ -1,0 +1,41 @@
+#
+# Definition of all trackable objects
+# Identifier corresponds to Trackable ID set in Tracking Tools
+#
+rigid_bodies:
+
+    '66':
+        pose: calib_o/pose
+        #pose2d: calib_o/ground_pose
+        frame_id: calib_o/base_link
+
+    '67':
+        pose: calib_x/pose
+        #pose2d: calib_x/ground_pose
+        frame_id: calib_x/base_link
+
+    '68':
+        pose: calib_y/pose
+        #pose2d: calib_y/ground_pose
+        frame_id: calib_y/base_link
+
+    '69':
+        pose: calib_cam/pose
+        #pose2d: calib_cam/ground_pose
+        frame_id: calib_cam/base_link
+
+    '11':
+        pose: calib_obs0/pose
+        #pose2d: calib_obs0/ground_pose
+        frame_id: calib_obs0/base_link
+
+   #Use this format to create each new rigid body
+
+   #'2':
+   #    pose: rigid_body_2/pose
+   #    pose2d: rigid_body_2/ground_pose
+   #    frame_id: rigid_body_2/base_link
+
+optitrack_config:
+#	multicast_address: 192.169.209.203
+       multicast_address: 224.0.0.1

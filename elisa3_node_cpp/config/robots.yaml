@@ -1,0 +1,18 @@
+#
+# Definition of all trackable objects
+# Identifier corresponds to Trackable ID set in Tracking Tools
+#
+robots:
+    '1':
+        address: 3808
+    '2':
+        address: 3801	
+    '3':
+        address: 3222
+#3658
+   #Use this format to create each new rigid body
+
+   #'2':
+   #    pose: rigid_body_2/pose
+   #    pose2d: rigid_body_2/ground_pose
+   #    frame_id: rigid_body_2/base_link
