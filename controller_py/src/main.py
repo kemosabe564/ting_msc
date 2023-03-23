@@ -22,10 +22,6 @@ if __name__ == "__main__":
     # t = last_saved_time
 
 
-
-    # Init phase
-    nodes = Nodes(active_robots)
-
     # Set Leds
     nodes.set_leds(green=0, blue=0, red=10)
 

@@ -61,10 +61,7 @@ if __name__ == "__main__":
     a = pd.DataFrame(robot_history['1']).T
     print(a)
     print(a['pos_x'])
-    # c = a.iloc[-1:].values[0]
-    # print(c)
-    # print(type(c))
-    # # plt.plot(a['pos'])
+
     plt.figure(figsize = (8, 6), dpi = 80)
     plt.plot(a['pos_x'], a['pos_y'])
     

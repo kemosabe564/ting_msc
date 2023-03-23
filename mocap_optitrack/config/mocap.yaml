@@ -23,17 +23,17 @@
 #
 rigid_bodies:
     '0':
-        address: 3222
-        xPos: 0.000
-        yPos: 0.000
-    '1':
         address: 3808
-        xPos: 0.00
-        yPos: 0.00   
-    '2':
+        xPos: 0.0
+        yPos: 0.0
+    '1':
         address: 3801
-        xPos: -0.05
-        yPos: -0.05                                                                                                    
+        xPos: 0.0
+        yPos: 0.0   
+    '2':
+        address: 3222
+        xPos: 0.05
+        yPos: 0.05                                                                                                    
    #Use this format to create each new rigid body
 
    #'2':
