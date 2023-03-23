@@ -12,6 +12,7 @@ import math
 import typing
 
 from configuration import *
+from Kalman import *
 
 from std_msgs.msg import Float64MultiArray
 from nav_msgs.msg import Odometry
@@ -192,9 +193,9 @@ class Node:
     
     
     def states_transform(self, X, v, omega):
-        X[0] += self.v * math.cos(X[2])# *2/3/1000/4
-        X[1] += self.v * math.sin(X[2])# *2/3/1000
-        X[2] += self.omega
+        X[0] = X[0] + v * math.cos(X[2])# *2/3/1000/4
+        X[1] = X[1] + v * math.sin(X[2])# *2/3/1000
+        X[2] = X[2] + omega
         return X
 
     def go_to_goal(self):
@@ -244,6 +245,30 @@ class Node:
         if(self.moving == 0):
             self.reset_goal()
             
+    def measurement_fusion(self, k_filter_camera, k_filter_odo):
+        # take the measurement from the odom
+        odom_measurement = [self.odom_x, self.odom_y, self.odom_phi]
+        
+        cam_measurement = [self.cam_x, self.cam_y, self.cam_phi]
+        
+        
+        k_filter_odo.R_k = np.array([[1.0,   0,    0],
+                                     [  0, 1.0,    0],
+                                     [  0,    0, 1.0]]) 
+        k_filter_odo.Q_k = np.array([[0.01,   0,    0],
+                                     [  0, 0.01,    0],
+                                     [  0,    0, 0.005]]) 
+        optimal_state_estimate_k, covariance_estimate_k = k_filter_odo.sr_EKF(odom_measurement, self.estimation, 1)
+        # obs_vector_z_k = self.measurement_bias, # Most recent sensor measurement
+        # state_estimate_k_1 = self.estimation, # Our most recent estimate of the state
+        # u_k_1 = [v, omega], # Our most recent control input
+        # P_k_1, # Our most recent state covariance matrix
+        # dk = 1 # Time interval            
+        self.measurement_Kalman = optimal_state_estimate_k
+        k_filter_odo.P_k_1 = covariance_estimate_k
+        self.estimation = self.measurement_Kalman
+        
+                
 class Nodes:
     def __init__(self, active_robots = ['0000']):
         for tag in active_robots:
@@ -339,7 +364,7 @@ class Nodes:
                 
     #     self.set_control_input(v, omega)
 
-    def move(self, step_size: float = 0., theta: float =0.3):
+    def move(self, step_size: float = 0., theta: float =0.0):
         for tag in self.nodes:
             
             # could add a logic to let robor decide where to go           
@@ -350,6 +375,7 @@ class Nodes:
             self.nodes[tag].compute_move(pol = np.array([step, omega])) # \TODO change to move
             
             self.nodes[tag].estimation = self.nodes[tag].states_transform(self.nodes[tag].estimation, step, omega)
+            print("tag: {}, estimation: {}".format(tag, self.nodes[tag].estimation))
             
             print("tag: {}, step: {}, theta: {}".format(tag, step, omega))
             
@@ -464,9 +490,9 @@ class Nodes:
             self.saved_data[t][tag] = {'pos_x': copy.deepcopy(self.nodes[tag].robot_meas_pose[0]),
                                        'pos_y': copy.deepcopy(self.nodes[tag].robot_meas_pose[1]),
                                        'orien': copy.deepcopy(self.nodes[tag].robot_meas_orien),
-                                       'x': copy.deepcopy(self.nodes[tag].x),
-                                       'y': copy.deepcopy(self.nodes[tag].y),
-                                       'phi': copy.deepcopy(self.nodes[tag].phi),
+                                       'x': copy.deepcopy(self.nodes[tag].estimation[0]),
+                                       'y': copy.deepcopy(self.nodes[tag].estimation[1]),
+                                       'phi': copy.deepcopy(self.nodes[tag].estimation[2]),
                                        'cam_x': copy.deepcopy(self.nodes[tag].cam_x),
                                        'cam_y': copy.deepcopy(self.nodes[tag].cam_y),
                                        'cam_phi': copy.deepcopy(self.nodes[tag].cam_phi)

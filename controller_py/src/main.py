@@ -28,13 +28,13 @@ if __name__ == "__main__":
     # Move Robots
     last_saved_time = 0
     step_size = 1.0
-    theta = 0.5
+    theta = 0.0
     for t in range(last_saved_time, 20):
     
         print("t: ", t)
-        nodes.move(step_size= step_size, theta=theta)
-        step_size += 0.0
-        theta += 0.5
+        nodes.move(step_size = step_size, theta=theta)
+        step_size += 0.1
+        theta += 0.0
         
         
         nodes.store_data(t)

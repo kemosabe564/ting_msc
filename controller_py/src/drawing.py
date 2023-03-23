@@ -34,8 +34,8 @@ if __name__ == "__main__":
                 robot_history[str(j)][0] = dict.fromkeys(key_set, dict())
                 
                 for k in range(len(key_set)):
-                    robot_history[str(j)][0][key_set(k)] = copy.deepcopy(b[i][str(j)][key_set(k)])
-                    del robot_history[str(j)][key_set(k)]
+                    robot_history[str(j)][0][key_set[k]] = copy.deepcopy(b[i][str(j)][key_set[k]])
+                    del robot_history[str(j)][key_set[k]]
                 # robot_history[str(j)][0]['pos_x'] = copy.deepcopy(b[i][str(j)]['pos_x'])
                 # robot_history[str(j)][0]['pos_y'] = copy.deepcopy(b[i][str(j)]['pos_y'])
                 # robot_history[str(j)][0]['orien'] = copy.deepcopy(b[i][str(j)]['orien'])
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     t = np.arange(T)
     # plt.plot(t, robot_history['0'])
     a = list(robot_history['2'])
-    a = pd.DataFrame(robot_history['1']).T
+    a = pd.DataFrame(robot_history['0']).T
     print(a)
     print(a['pos_x'])
 
