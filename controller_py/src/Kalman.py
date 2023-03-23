@@ -36,7 +36,7 @@ class Kalman:
                                [  0,   0, 0.1]])
 
  
-    def sr_EKF(self, z_k, state_estimate_k, u_k_1, dk = 1):
+    def sr_EKF(self, z_k, state_estimate_k, dk = 1):
 
         ######################### Predict #############################
         # Predict the state estimate at time k based on the state 
