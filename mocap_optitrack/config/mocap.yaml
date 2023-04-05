@@ -24,8 +24,8 @@
 rigid_bodies:
     '0':
         address: 3808
-        xPos: 0.0
-        yPos: 0.0
+        xPos: 1.0
+        yPos: 1.0
     '1':
         address: 3801
         xPos: 0.0

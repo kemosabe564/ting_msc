@@ -1017,7 +1017,7 @@ signed int getOdomTheta(int robotAddr) {
         }
         return tempVal;
     }
-    return -1;
+    return 0;
 }
 
 signed int getOdomXpos(int robotAddr) {
@@ -1034,7 +1034,7 @@ signed int getOdomXpos(int robotAddr) {
         }
         return tempVal;
     }
-    return -1;
+    return 0;
 }
 
 signed int getOdomYpos(int robotAddr) {
@@ -1051,7 +1051,7 @@ signed int getOdomYpos(int robotAddr) {
         }
         return tempVal;
     }
-    return -1;
+    return 0;
 }
 
 void setSmallLed(int robotAddr, int ledId, int state) {

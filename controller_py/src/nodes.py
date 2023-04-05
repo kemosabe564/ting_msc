@@ -63,9 +63,13 @@ class Node:
         self.cam_y = self.y
         self.cam_phi = self.phi
         
+        self.theoretical_position = np.array([self.x, self.y, self.phi])
         self.estimation = np.array([self.x, self.y, self.phi])
-               
-        self.goalX = np.array([0.5, 0.0])
+        
+        self.kalman_odo = Kalman()
+        self.kalman_cam = Kalman()
+        
+        self.goalX = np.array([1.1, 1.1])
         self.setup = {"vmax":0.5, "gtg_scaling":0.0001, "K_p":0.01, "ao_scaling":0.00005}
 
         # initialize theoretical positioning following buffer style
@@ -138,7 +142,6 @@ class Node:
         :return: ros instruction [left or right, degrees to turn, forward or backward, longitudinal move]
         """
         self.print_position_measures()
-
         orien_cor = self.orien[-1]
         if orien_cor < 0:
             orien_cor += 2 * np.pi
@@ -184,17 +187,19 @@ class Node:
             else:
                 self.pos[-1] = self.robot_meas_pose
                 self.orien[-1] = self.robot_meas_orien
+                
             self.update_reset = False
         elif type == 'theor':
             self.update_reset = True
             self.msg_reset = np.array([0, self.pos[-1][0], self.pos[-1][1], self.orien[-1]])
+            self.msg_reset = np.array([0, 1, 1, 1])
+            
     
-    
-    
+
     
     def states_transform(self, X, v, omega):
-        X[0] = X[0] + v * math.cos(X[2])# *2/3/1000/4
-        X[1] = X[1] + v * math.sin(X[2])# *2/3/1000
+        X[0] = X[0] + v * math.cos(X[2]) / 1000 # *2/3/1000/4
+        X[1] = X[1] + v * math.sin(X[2]) / 1000 # *2/3/1000
         X[2] = X[2] + omega
         return X
 
@@ -202,7 +207,7 @@ class Node:
         e = self.goalX - [self.estimation[0], self.estimation[1]]     # error in position
 
         # K_P = self.data["vmax"] * (1 - np.exp(- self.data["gtg_scaling"] * np.linalg.norm(e)**2)) / np.linalg.norm(e)     # Scaling for velocity
-        K_P = [-10, -10]
+        K_P = [-100, -100]
         v = np.linalg.norm(K_P * e)   # Velocity decreases as bot gets closer to goal
         
         phi_d = math.atan2(e[1], e[0])  # Desired heading
@@ -245,27 +250,30 @@ class Node:
         if(self.moving == 0):
             self.reset_goal()
             
-    def measurement_fusion(self, k_filter_camera, k_filter_odo):
+    def measurement_fusion(self):
+        
+        
+        
         # take the measurement from the odom
         odom_measurement = [self.odom_x, self.odom_y, self.odom_phi]
         
         cam_measurement = [self.cam_x, self.cam_y, self.cam_phi]
         
         
-        k_filter_odo.R_k = np.array([[1.0,   0,    0],
+        self.kalman_odo.R_k = np.array([[1.0,   0,    0],
                                      [  0, 1.0,    0],
                                      [  0,    0, 1.0]]) 
-        k_filter_odo.Q_k = np.array([[0.01,   0,    0],
+        self.kalman_odo.Q_k = np.array([[0.01,   0,    0],
                                      [  0, 0.01,    0],
                                      [  0,    0, 0.005]]) 
-        optimal_state_estimate_k, covariance_estimate_k = k_filter_odo.sr_EKF(odom_measurement, self.estimation, 1)
+        optimal_state_estimate_k, covariance_estimate_k = self.kalman_odo.sr_EKF(odom_measurement, self.estimation, 1)
         # obs_vector_z_k = self.measurement_bias, # Most recent sensor measurement
         # state_estimate_k_1 = self.estimation, # Our most recent estimate of the state
         # u_k_1 = [v, omega], # Our most recent control input
         # P_k_1, # Our most recent state covariance matrix
         # dk = 1 # Time interval            
         self.measurement_Kalman = optimal_state_estimate_k
-        k_filter_odo.P_k_1 = covariance_estimate_k
+        self.kalman_odo.P_k_1 = covariance_estimate_k
         self.estimation = self.measurement_Kalman
         
                 
@@ -304,6 +312,8 @@ class Nodes:
         self.msg_reset = Float64MultiArray()
 
         self.nodes = {tag: Node(release_time=0, tag=tag) for tag in active_robots}
+        
+        
 
         # STORING VARIABLES
         # self.total_trips_abs = dict()
@@ -314,70 +324,35 @@ class Nodes:
         for tag in self.nodes:
             self.nodes[tag].print_position_measures()
 
-    
-    # def set_control_input(self, v = 1.5, omega = 0.0):
-    #     # tag = '1'
-    #     # [a, b] = self.nodes[tag].go_to_goal()
-    #     self.msg_inputs.data = [0, 0]
-    #     print("input: ", v)
-    #     print("angle: ", omega)
-    #     self.msg_input.linear.x = v
-    #     self.msg_input.linear.y = 0.0
-    #     self.msg_input.linear.z = 0.0
 
-    #     self.msg_input.angular.x = omega
-    #     self.msg_input.angular.y = 0.0
-    #     self.msg_input.angular.z = 0.0
-    #     self.publisher_input.publish(self.msg_input)
-        
-        
-        # tag = '1'
-        # print(self.msg_inputs.data)
-        # print(np.array([self.nodes[tag].input_v, self.nodes[tag].input_omega]))
-        # self.msg_inputs.data = np.concatenate((self.msg_inputs.data, np.array([self.nodes[tag].input_v, self.nodes[tag].input_omega])))
-        # print(self.msg_inputs.data)
-        # for tag in self.forager_tags:
-        #     self.msg_inputs.data = np.concatenate((self.msg_inputs.data, np.array([self.nodes[tag].input_v, self.nodes[tag].input_omega])))
-        # self.publisher_inputs.publish(self.msg_inputs)    
-        
-        
 
-    # def stop_engine(self):
-    #     self.msg_input.linear.x = 0.0
-    #     self.msg_input.linear.y = 0.0
-    #     self.msg_input.linear.z = 0.0
-
-    #     self.msg_input.angular.x = 0.0
-    #     self.msg_input.angular.y = 0.0
-    #     self.msg_input.angular.z = 0.0
-    #     self.publisher_input.publish(self.msg_input)
-
-        
-    # def loop_fuc(self):
-    #     v = 0.0
-    #     omega = 0.0
-    #     for tag in self.nodes:
-    #         self.nodes[tag].loop_fuc()
-    #         if tag == '1':
-    #             v = self.nodes[tag].input_v
-    #             omega = self.nodes[tag].input_omega
-                
-    #     self.set_control_input(v, omega)
-
-    def move(self, step_size: float = 0., theta: float =0.0):
+    def move(self, move_type = 'move', step_size: float = 0., theta: float =0.0):
         for tag in self.nodes:
             
-            # could add a logic to let robor decide where to go           
-            [step, omega] = self.nodes[tag].go_to_goal()
-            step = step_size
-            omega = theta
+            # could add a logic to let robor decide where to go      
+            if(move_type == 'move'):     
+                [step, omega] = self.nodes[tag].go_to_goal()
+            else:
+                step = step_size
+                omega = theta
+            
+            # if(self.nodes[tag])
+            
+            self.nodes[tag].measurement_fusion()
             
             self.nodes[tag].compute_move(pol = np.array([step, omega])) # \TODO change to move
+                        
+            self.nodes[tag].input_v = step
+            self.nodes[tag].input_omega = omega
             
-            self.nodes[tag].estimation = self.nodes[tag].states_transform(self.nodes[tag].estimation, step, omega)
-            print("tag: {}, estimation: {}".format(tag, self.nodes[tag].estimation))
+            self.nodes[tag].theoretical_position = self.nodes[tag].states_transform(self.nodes[tag].theoretical_position, step, omega)
+            # if tag == 0:
+            #     print("tag: {}, theoretical_position: {}".format(tag, self.nodes[tag].theoretical_position))
+                
+            #     print("tag: {}, step: {}, theta: {}".format(tag, step, omega))
             
-            print("tag: {}, step: {}, theta: {}".format(tag, step, omega))
+            self.nodes[tag].estimation = self.nodes[tag].states_transform(self.nodes[tag].estimation, self.nodes[tag].input_v, self.nodes[tag].input_omega)
+            
             
         # SETUP MESSAGE
         self.msg_auto_motive.data = np.array([len(self.nodes)])
@@ -426,6 +401,7 @@ class Nodes:
                 count += 1
 
         if count != 0:
+            print("reset")
             self.msg_reset.data[0] = count
             self.publisher_reset.publish(self.msg_reset)
 
@@ -490,12 +466,15 @@ class Nodes:
             self.saved_data[t][tag] = {'pos_x': copy.deepcopy(self.nodes[tag].robot_meas_pose[0]),
                                        'pos_y': copy.deepcopy(self.nodes[tag].robot_meas_pose[1]),
                                        'orien': copy.deepcopy(self.nodes[tag].robot_meas_orien),
-                                       'x': copy.deepcopy(self.nodes[tag].estimation[0]),
-                                       'y': copy.deepcopy(self.nodes[tag].estimation[1]),
-                                       'phi': copy.deepcopy(self.nodes[tag].estimation[2]),
+                                       'estimation_x': copy.deepcopy(self.nodes[tag].estimation[0]),
+                                       'estimation_y': copy.deepcopy(self.nodes[tag].estimation[1]),
+                                       'estimation_phi': copy.deepcopy(self.nodes[tag].estimation[2]),
                                        'cam_x': copy.deepcopy(self.nodes[tag].cam_x),
                                        'cam_y': copy.deepcopy(self.nodes[tag].cam_y),
-                                       'cam_phi': copy.deepcopy(self.nodes[tag].cam_phi)
+                                       'cam_phi': copy.deepcopy(self.nodes[tag].cam_phi),
+                                       'x': copy.deepcopy(self.nodes[tag].theoretical_position[0]),
+                                       'y': copy.deepcopy(self.nodes[tag].theoretical_position[1]),
+                                       'phi': copy.deepcopy(self.nodes[tag].theoretical_position[2])
                                        }
 
 

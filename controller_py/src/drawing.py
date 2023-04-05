@@ -13,20 +13,20 @@ import pandas as pd
 P = 3
 
 robot_N = 3
-T = 20
+T = 10
 
 if __name__ == "__main__":
 
     robot_history = dict.fromkeys(['0', '1', '2'], dict())
     
-    key_set = ['orien', 'pos_x', 'pos_y', 'phi', 'x', 'y', 'cam_phi', 'cam_x', 'cam_y']
+    key_set = ['orien', 'pos_x', 'pos_y', 'estimation_phi', 'estimation_x', 'estimation_y', 'cam_phi', 'cam_x', 'cam_y', 'x', 'y', 'phi']
     
     with open('./data/saved_data_t0_RUN1.p', 'rb') as fp:
         if P == 3:
             b = pickle.load(fp)
         elif P == 2:
             b = pickle.load(fp, encoding='iso-8859-1')
-    print(b)
+    # print(b)
     for i in range(T):
         if(i == 0):
             for j in range(robot_N):
@@ -52,24 +52,26 @@ if __name__ == "__main__":
     # print(b[0])
     # print(b[0][str(1)])
 
-    print(robot_history['0'])
-    print(robot_history['2'][1])
+    # print(robot_history['0'])
+    # print(robot_history['2'][1])
     
     t = np.arange(T)
-    # plt.plot(t, robot_history['0'])
-    a = list(robot_history['2'])
+    
     a = pd.DataFrame(robot_history['0']).T
     print(a)
-    print(a['pos_x'])
+    # print(a['pos_x'])
 
     plt.figure(figsize = (8, 6), dpi = 80)
-    plt.plot(a['pos_x'], a['pos_y'])
+    plt.plot(a['pos_x'], a['pos_y'], '.')
     
     plt.figure(figsize = (8, 6), dpi = 80)
-    plt.plot(a['x'], a['y'])
+    plt.plot(a['x'], a['y'], '.')
+    
+    # plt.figure(figsize = (8, 6), dpi = 80)
+    # plt.plot(a['cam_x'], a['cam_y'], '.')
     
     plt.figure(figsize = (8, 6), dpi = 80)
-    plt.plot(a['cam_x'], a['cam_y'])
+    plt.plot(a['estimation_x'], a['estimation_y'], '.')
     
     plt.show()
     
