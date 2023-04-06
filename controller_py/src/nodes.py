@@ -36,6 +36,9 @@ obstacle_avoidance = utils.ObstacleAvoidance()
 
 class Node:
     def __init__(self, release_time, range=range, tag=0):
+        
+        self.t = 0
+        
         self.tag = tag
         self.release_time = release_time
         self.address = mapper[str(tag)]['address']
@@ -234,21 +237,6 @@ class Node:
     
     def reset_goal(self):
         [self.input_v, self.input_omega] = [0.0, 0.0]
-    
-    def loop_fuc(self):
-        self.ternimate()
-        if(self.moving == 1):
-        
-            # do the fusing to get the estimation
-            
-            self.estimation = [self.odom_x, self.odom_y, self.odom_phi]
-            # self.estimation = [self.cam_x, self.cam_y, self.cam_phi]
-            
-            [self.input_v, self.input_omega] = self.go_to_goal()
-            # [self.input_v, self.input_omega] = [5.0, 0]
-        
-        if(self.moving == 0):
-            self.reset_goal()
             
     def measurement_fusion(self):
         
@@ -257,7 +245,8 @@ class Node:
         # take the measurement from the odom
         odom_measurement = [self.odom_x, self.odom_y, self.odom_phi]
         
-        cam_measurement = [self.cam_x, self.cam_y, self.cam_phi]
+        # cam_measurement = [self.cam_x, self.cam_y, self.cam_phi]
+        cam_measurement = [self.odom_x, self.odom_y, self.odom_phi]
         
         
         self.kalman_odo.R_k = np.array([[1.0,   0,    0],
@@ -275,6 +264,49 @@ class Node:
         self.measurement_Kalman = optimal_state_estimate_k
         self.kalman_odo.P_k_1 = covariance_estimate_k
         self.estimation = self.measurement_Kalman
+        
+        
+        if (self.t % 5 == 0):
+            optimal_state_estimate_k, covariance_estimate_k = self.kalman_cam.sr_EKF(cam_measurement, self.estimation, 1)
+            # obs_vector_z_k = self.measurement_bias, # Most recent sensor measurement
+            # state_estimate_k_1 = self.estimation, # Our most recent estimate of the state
+            # u_k_1 = [v, omega], # Our most recent control input
+            # P_k_1, # Our most recent state covariance matrix
+            # dk = 1 # Time interval            
+            self.measurement_Kalman = optimal_state_estimate_k
+            self.kalman_cam.P_k_1 = covariance_estimate_k
+            self.estimation = self.measurement_Kalman
+        
+        
+        
+        
+    
+    def loop_fuc(self, move_type):
+        
+        # add the timer
+        self.t += 1
+        
+        # 1. take measurement from odom and cam odom_measurement and cam_measurement
+        
+        # 2. estimated the position
+        
+        self.measurement_fusion()
+        
+        # 3. decide where to go based on self.estimation
+        
+        if(move_type == 'move'):     
+            [step, omega] = self.go_to_goal()
+        else:
+            step = 0
+            omega = 0
+        
+        # execution
+        
+        self.compute_move(pol = np.array([step, omega]))
+        self.input_v = step
+        self.input_omega = omega
+        self.theoretical_position = self.states_transform(self.theoretical_position, step, omega)
+        self.estimation = self.states_transform(self.estimation, step, omega)
         
                 
 class Nodes:
@@ -319,7 +351,26 @@ class Nodes:
         # self.total_trips_abs = dict()
         # self.total_trips_rel = dict()
         self.saved_data = dict()
+    
+    def loop_fuc(self, move_type = 'move'):
+        for tag in self.nodes:
+            print('a')
+            
+            self.nodes[tag].loop_fuc(move_type)
+            
+        # SETUP MESSAGE
+        self.msg_auto_motive.data = np.array([len(self.nodes)])
+        for tag in self.nodes:
+            self.msg_auto_motive.data = np.concatenate((self.msg_auto_motive.data,
+                    np.array([int(self.nodes[tag].address)]), self.nodes[tag].msg_auto_motive), axis=0)
 
+        # SEND MOVE MESSAGE
+        rospy.sleep(1)
+        self.publisher_auto_motive.publish(self.msg_auto_motive)
+        # rospy.sleep(10)            
+    
+    
+    
     def print_fuc(self):
         for tag in self.nodes:
             self.nodes[tag].print_position_measures()

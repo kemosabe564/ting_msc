@@ -25,10 +25,8 @@ if __name__ == "__main__":
     # Set Leds
     nodes.set_leds(green=0, blue=0, red=10)
 
-    # TODO
-    # reset the robot odom in the beginning
     
-        
+    # reset the robot odom in the beginning    
     for i in range(3):
         print("wait for odom response")
         nodes.move('still', step_size= 0.0, theta=0.)
@@ -44,9 +42,10 @@ if __name__ == "__main__":
     
         print("t: ", t)
         nodes.store_data(t)
-        nodes.move('move', step_size = step_size, theta = theta)
-        step_size += 0.0
-        theta += 0.0
+        # nodes.move('move', step_size = step_size, theta = theta)
+        # step_size += 0.0
+        # theta += 0.0
+        nodes.loop_fuc('move')
         
 
         
