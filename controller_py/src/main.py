@@ -14,19 +14,11 @@ if __name__ == "__main__":
     print("start")   
     nodes = Nodes(active_robots)
 
-    # if LOAD:
-    #     last_saved_time = nodes.load_states(load_time=LOAD_TIME) +1
-    # else:
-    #     last_saved_time = 0
-
-    # t = last_saved_time
-
-
     # Set Leds
     nodes.set_leds(green=0, blue=0, red=10)
 
     
-    # reset the robot odom in the beginning    
+    # Reset the robot odom in the beginning    
     for i in range(3):
         print("wait for odom response")
         nodes.move('still', step_size= 0.0, theta=0.)
@@ -42,17 +34,11 @@ if __name__ == "__main__":
     
         print("t: ", t)
         nodes.store_data(t)
-        # nodes.move('move', step_size = step_size, theta = theta)
-        # step_size += 0.0
-        # theta += 0.0
+
         nodes.loop_fuc('move')
         
+        nodes.plot_data(t)
 
-        
-
-    # Pull Odometry measure
-    # nodes.print_position_measures()
-    
     nodes.save_data(0)
     
     # Stop engine

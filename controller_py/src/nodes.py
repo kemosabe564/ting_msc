@@ -4,7 +4,7 @@ import rospy
 import numpy as np
 import json
 import matplotlib
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import copy
 import pickle
@@ -198,11 +198,9 @@ class Node:
             self.msg_reset = np.array([0, 1, 1, 1])
             
     
-
-    
     def states_transform(self, X, v, omega):
-        X[0] = X[0] + v * math.cos(X[2]) / 1000 # *2/3/1000/4
-        X[1] = X[1] + v * math.sin(X[2]) / 1000 # *2/3/1000
+        X[0] = X[0] + v * math.cos(X[2]) / 1000 
+        X[1] = X[1] + v * math.sin(X[2]) / 1000 
         X[2] = X[2] + omega
         return X
 
@@ -239,9 +237,7 @@ class Node:
         [self.input_v, self.input_omega] = [0.0, 0.0]
             
     def measurement_fusion(self):
-        
-        
-        
+           
         # take the measurement from the odom
         odom_measurement = [self.odom_x, self.odom_y, self.odom_phi]
         
@@ -256,11 +252,7 @@ class Node:
                                      [  0, 0.01,    0],
                                      [  0,    0, 0.005]]) 
         optimal_state_estimate_k, covariance_estimate_k = self.kalman_odo.sr_EKF(odom_measurement, self.estimation, 1)
-        # obs_vector_z_k = self.measurement_bias, # Most recent sensor measurement
-        # state_estimate_k_1 = self.estimation, # Our most recent estimate of the state
-        # u_k_1 = [v, omega], # Our most recent control input
-        # P_k_1, # Our most recent state covariance matrix
-        # dk = 1 # Time interval            
+          
         self.measurement_Kalman = optimal_state_estimate_k
         self.kalman_odo.P_k_1 = covariance_estimate_k
         self.estimation = self.measurement_Kalman
@@ -268,43 +260,39 @@ class Node:
         
         if (self.t % 5 == 0):
             optimal_state_estimate_k, covariance_estimate_k = self.kalman_cam.sr_EKF(cam_measurement, self.estimation, 1)
-            # obs_vector_z_k = self.measurement_bias, # Most recent sensor measurement
-            # state_estimate_k_1 = self.estimation, # Our most recent estimate of the state
-            # u_k_1 = [v, omega], # Our most recent control input
-            # P_k_1, # Our most recent state covariance matrix
-            # dk = 1 # Time interval            
+          
             self.measurement_Kalman = optimal_state_estimate_k
             self.kalman_cam.P_k_1 = covariance_estimate_k
             self.estimation = self.measurement_Kalman
         
-        
-        
-        
+     
     
     def loop_fuc(self, move_type):
         
         # add the timer
         self.t += 1
         
-        # 1. take measurement from odom and cam odom_measurement and cam_measurement
+        # 1. take measurement from odom and cam odom_measurement and cam_measurement via sub
         
         # 2. estimated the position
         
         self.measurement_fusion()
         
         # 3. decide where to go based on self.estimation
-        
+        # could add a logic to let robor decide where to go 
         if(move_type == 'move'):     
             [step, omega] = self.go_to_goal()
         else:
             step = 0
             omega = 0
         
+        self.input_v = step
+        self.input_omega = omega
+        
         # execution
         
         self.compute_move(pol = np.array([step, omega]))
-        self.input_v = step
-        self.input_omega = omega
+        
         self.theoretical_position = self.states_transform(self.theoretical_position, step, omega)
         self.estimation = self.states_transform(self.estimation, step, omega)
         
@@ -347,15 +335,18 @@ class Nodes:
         
         
 
-        # STORING VARIABLES
+        # store
         # self.total_trips_abs = dict()
         # self.total_trips_rel = dict()
         self.saved_data = dict()
+        
+        # plot
+        self.buffer = 10
+        self.ax = np.zeros((1, self.buffer))[0]
+        self.ay = np.zeros((1, self.buffer))[0]
     
     def loop_fuc(self, move_type = 'move'):
         for tag in self.nodes:
-            print('a')
-            
             self.nodes[tag].loop_fuc(move_type)
             
         # SETUP MESSAGE
@@ -379,30 +370,22 @@ class Nodes:
 
     def move(self, move_type = 'move', step_size: float = 0., theta: float =0.0):
         for tag in self.nodes:
-            
-            # could add a logic to let robor decide where to go      
+                             
             if(move_type == 'move'):     
                 [step, omega] = self.nodes[tag].go_to_goal()
             else:
                 step = step_size
                 omega = theta
-            
-            # if(self.nodes[tag])
-            
-            self.nodes[tag].measurement_fusion()
+                        
+            # self.nodes[tag].measurement_fusion()
             
             self.nodes[tag].compute_move(pol = np.array([step, omega])) # \TODO change to move
                         
-            self.nodes[tag].input_v = step
-            self.nodes[tag].input_omega = omega
+            # self.nodes[tag].input_v = step
+            # self.nodes[tag].input_omega = omega
             
-            self.nodes[tag].theoretical_position = self.nodes[tag].states_transform(self.nodes[tag].theoretical_position, step, omega)
-            # if tag == 0:
-            #     print("tag: {}, theoretical_position: {}".format(tag, self.nodes[tag].theoretical_position))
-                
-            #     print("tag: {}, step: {}, theta: {}".format(tag, step, omega))
-            
-            self.nodes[tag].estimation = self.nodes[tag].states_transform(self.nodes[tag].estimation, self.nodes[tag].input_v, self.nodes[tag].input_omega)
+            # self.nodes[tag].theoretical_position = self.nodes[tag].states_transform(self.nodes[tag].theoretical_position, step, omega)            
+            # self.nodes[tag].estimation = self.nodes[tag].states_transform(self.nodes[tag].estimation, self.nodes[tag].input_v, self.nodes[tag].input_omega)
             
             
         # SETUP MESSAGE
@@ -501,15 +484,6 @@ class Nodes:
     def store_data(self, t):
         self.saved_data[t] = dict()
         for tag in self.nodes:
-            # self.saved_data[t][tag] = {'pos': copy.deepcopy(self.nodes[tag].pos),
-            #                            'orien': copy.deepcopy(self.nodes[tag].orien),
-            #                            'w': copy.deepcopy(self.nodes[tag].w),
-            #                            'v': copy.deepcopy(self.nodes[tag].v),
-            #                            'mode': copy.deepcopy(self.nodes[tag].mode),
-            #                            'state': copy.deepcopy(self.nodes[tag].state),
-            #                            'trips': copy.deepcopy(self.nodes[tag].trips)
-            #                            }
-
             # self.saved_data[t][tag] = {'pos_x': copy.deepcopy(self.nodes[tag].pos[-1][0]),
             #                            'pos_y': copy.deepcopy(self.nodes[tag].pos[-1][1]),
             #                            'orien': copy.deepcopy(self.nodes[tag].orien[-1])
@@ -527,12 +501,24 @@ class Nodes:
                                        'y': copy.deepcopy(self.nodes[tag].theoretical_position[1]),
                                        'phi': copy.deepcopy(self.nodes[tag].theoretical_position[2])
                                        }
-
+        print(self.ax)
+        self.ax[ :-1] = self.ax[ 1:]
+        self.ay[ :-1] = self.ay[ 1:]
+        
+        self.ax[-1] = self.nodes['0'].estimation[0]
+        self.ay[-1] = self.nodes['0'].estimation[1]
 
     def save_data(self, t):
         with open('./data/saved_data_t{}_RUN{}.p'.format(t, 1),'wb') as fp:
             pickle.dump(self.saved_data, fp, protocol=pickle.HIGHEST_PROTOCOL)
 
+    def plot_data(self, t):
+        plt.ion()
+        plt.clf()
+        plt.plot(self.ax, self.ay, '.')
+        
+        plt.pause(0.1)
+        plt.ioff()
 
 
 
