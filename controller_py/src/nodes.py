@@ -29,6 +29,9 @@ std_vlt_rot = 10
 
 PI = math.pi
 
+sr_KALMAN = 1
+mr_KALMAN = 0
+
 with open('mapper.json') as json_file:
     mapper = json.load(json_file)
 
@@ -235,6 +238,15 @@ class Node:
     
     def reset_goal(self):
         [self.input_v, self.input_omega] = [0.0, 0.0]
+    
+    def detemine_camera(self):
+        
+        if(self.cam_x == 0 or self.cam_y == 0 or self.cam_phi == 0):
+            return [self.odom_x, self.odom_y, self.odom_phi]
+        else:
+            return [self.cam_x, self.cam_y, self.cam_phi]
+        
+        
             
     def measurement_fusion(self):
            
@@ -242,7 +254,7 @@ class Node:
         odom_measurement = [self.odom_x, self.odom_y, self.odom_phi]
         
         # cam_measurement = [self.cam_x, self.cam_y, self.cam_phi]
-        cam_measurement = [self.odom_x, self.odom_y, self.odom_phi]
+        cam_measurement = self.detemine_camera()
         
         
         self.kalman_odo.R_k = np.array([[1.0,   0,    0],
@@ -259,8 +271,10 @@ class Node:
         
         
         if (self.t % 5 == 0):
-            optimal_state_estimate_k, covariance_estimate_k = self.kalman_cam.sr_EKF(cam_measurement, self.estimation, 1)
-          
+            if(sr_KALMAN and ~mr_KALMAN):
+                optimal_state_estimate_k, covariance_estimate_k = self.kalman_cam.sr_EKF(cam_measurement, self.estimation, 1)
+            elif(mr_KALMAN and ~sr_KALMAN):
+                optimal_state_estimate_k, covariance_estimate_k = self.kalman_cam.mr_EKF(cam_measurement, self.estimation, 1)
             self.measurement_Kalman = optimal_state_estimate_k
             self.kalman_cam.P_k_1 = covariance_estimate_k
             self.estimation = self.measurement_Kalman
@@ -293,8 +307,8 @@ class Node:
         
         self.compute_move(pol = np.array([step, omega]))
         
-        self.theoretical_position = self.states_transform(self.theoretical_position, step, omega)
-        self.estimation = self.states_transform(self.estimation, step, omega)
+        # self.theoretical_position = self.states_transform(self.theoretical_position, step, omega)
+        # self.estimation = self.states_transform(self.estimation, step, omega)
         
                 
 class Nodes:
