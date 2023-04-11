@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     
     # Reset the robot odom in the beginning    
-    for i in range(3):
+    for i in range(1):
         print("wait for odom response")
         nodes.move('still', step_size= 0.0, theta=0.)
         rospy.sleep(1)
@@ -33,11 +33,15 @@ if __name__ == "__main__":
     for t in range(last_saved_time, 10):
     
         print("t: ", t)
-        nodes.store_data(t)
+        # nodes.store_data(t)
 
         nodes.loop_fuc('move')
+        # nodes.move('still', step_size= 1.0, theta = 0.)
         
         nodes.plot_data(t)
+        
+        nodes.test_cam()
+        rospy.sleep(1)
 
     nodes.save_data(0)
     

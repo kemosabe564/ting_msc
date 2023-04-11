@@ -37,6 +37,36 @@ with open('mapper.json') as json_file:
 
 obstacle_avoidance = utils.ObstacleAvoidance()
 
+class Camera: 
+    def __init__(self, tag):
+        
+        self.cam_x = 0.0
+        self.cam_y = 0.0
+        self.cam_phi = 0.0
+        self.tag = tag   
+        self.listener_camera = rospy.Subscriber('Bebop{}/ground_pose'.format(self.tag + 1), Pose2D, self.listen_optitrack_callback)
+              
+    # functions for subscribe callback    
+    def listen_optitrack_callback(self, optiMsg):
+        self.cam_x = optiMsg.x
+        self.cam_y = -optiMsg.y
+        self.cam_phi = optiMsg.theta
+        
+class Cameras:
+    def __init__(self, N):
+        self.number = N
+        self.cameras = {tag: Camera(tag = tag) for tag in range(N)}
+        self.measurement_list = np.zeros([N, 3])
+        
+    def update_camera(self):
+        self.measurement_list = np.zeros([self.number, 3])
+        i = 0
+        for tag in self.cameras:
+            self.measurement_list[i][0] = self.cameras[tag].cam_x
+            self.measurement_list[i][1] = self.cameras[tag].cam_y
+            self.measurement_list[i][2] = self.cameras[tag].cam_phi
+            i += 1
+            
 class Node:
     def __init__(self, release_time, range=range, tag=0):
         
@@ -75,7 +105,14 @@ class Node:
         self.kalman_odo = Kalman()
         self.kalman_cam = Kalman()
         
-        self.goalX = np.array([1.1, 1.1])
+        # buffer
+        self.buffer_size = 5
+        # self.camera_buffer = [[] for i in range(3)]
+
+        self.odo_error_buffer = [0.1] * self.buffer_size
+        self.camera_error_buffer = [0.1] * self.buffer_size
+        
+        self.goalX = np.array([0.0, 0.5])
         self.setup = {"vmax":0.5, "gtg_scaling":0.0001, "K_p":0.01, "ao_scaling":0.00005}
 
         # initialize theoretical positioning following buffer style
@@ -86,7 +123,7 @@ class Node:
         self.listener_robot_pose = rospy.Subscriber('elisa3_robot_{}/odom'.format(self.tag), Odometry,
                                                     self.listen_robot_pose_callback)
         
-        self.listener_camera = rospy.Subscriber('Bebop{}/ground_pose'.format(1), Pose2D, self.listen_optitrack_callback)
+        # self.listener_camera = rospy.Subscriber('Bebop{}/ground_pose'.format(int(self.tag) + 1), Pose2D, self.listen_optitrack_callback)
 
         # Initialize shared update message attributes
         self.update_leds = False
@@ -124,30 +161,37 @@ class Node:
         self.odom_y = float(odomMsg.pose.pose.position.y)
         self.odom_phi = float(odomMsg.pose.pose.position.z)
     
-    # functions for subscribe callback    
-    def listen_optitrack_callback(self, optiMsg):
-        self.cam_x = optiMsg.x
-        self.cam_y = optiMsg.y
-        self.cam_phi = optiMsg.theta
+    # # functions for subscribe callback    
+    # def listen_optitrack_callback(self, optiMsg):
+    #     self.cam_x = optiMsg.x
+    #     self.cam_y = -optiMsg.y
+    #     self.cam_phi = optiMsg.theta
+    #     # print(self.cam_x)
 
     def print_position_measures(self):
         msg = """ 
                 ID: {}
-                Theoretical: 
+                Estimation: 
                 position: {} - orientation: {}
                 Odom Measure: 
                 position: {} - orientation: {}
+                Cam Measure: 
+                position: {} - orientation: {}
                   """.format(self.tag,
-                             self.pos[-1], self.orien[-1],
-                             self.robot_meas_pose, self.robot_meas_orien)
-        print("msg: ", msg)
+                            #  self.pos[-1], self.orien[-1],
+                            #  self.robot_meas_pose, self.robot_meas_orien)
+                            [self.estimation[0], self.estimation[1]], self.estimation[2],
+                            [self.odom_x, self.odom_y], self.odom_phi,
+                            [self.cam_x, self.cam_y], self.cam_phi)
+        if(self.tag == '0'):            
+            print("msg: ", msg)
 
     def compute_move(self, pol: np.array):
         """
         :param pol: intended change in location nin polar coordinates np.array([rho, phi]) g
         :return: ros instruction [left or right, degrees to turn, forward or backward, longitudinal move]
         """
-        self.print_position_measures()
+        # self.print_position_measures()
         orien_cor = self.orien[-1]
         if orien_cor < 0:
             orien_cor += 2 * np.pi
@@ -198,7 +242,7 @@ class Node:
         elif type == 'theor':
             self.update_reset = True
             self.msg_reset = np.array([0, self.pos[-1][0], self.pos[-1][1], self.orien[-1]])
-            self.msg_reset = np.array([0, 1, 1, 1])
+            # self.msg_reset = np.array([0, 1, 1, 1])
             
     
     def states_transform(self, X, v, omega):
@@ -211,24 +255,19 @@ class Node:
         e = self.goalX - [self.estimation[0], self.estimation[1]]     # error in position
 
         # K_P = self.data["vmax"] * (1 - np.exp(- self.data["gtg_scaling"] * np.linalg.norm(e)**2)) / np.linalg.norm(e)     # Scaling for velocity
-        K_P = [-100, -100]
+        K_P = [-50, -50]
         v = np.linalg.norm(K_P * e)   # Velocity decreases as bot gets closer to goal
         
         phi_d = math.atan2(e[1], e[0])  # Desired heading
         
         omega = self.setup["K_p"]*math.atan2(math.sin(phi_d - self.estimation[2]), math.cos(phi_d - self.estimation[2]))     # Only P part of a PID controller to give omega as per desired heading
         
-        # omega_MAX = 1 * PI
-        # if(omega > omega_MAX):
-        #     omega = omega_MAX
-        # elif(omega < -omega_MAX):
-        #     omega = -omega_MAX
-        
         return [v, omega]
 
     def ternimate(self):
         MAX_length = 0.001
         distance = math.sqrt((self.goalX[0] - self.estimation[0])**2 + (self.goalX[1] - self.estimation[1])**2)
+        # print(distance)
         if(distance < MAX_length):
             self.moving = 0
             return 0
@@ -239,22 +278,45 @@ class Node:
     def reset_goal(self):
         [self.input_v, self.input_omega] = [0.0, 0.0]
     
-    def detemine_camera(self):
+    def detemine_camera(self, cameras):
+        # update the camera
+        MAX_dist = 1e5
+        cameras.update_camera()
         
-        if(self.cam_x == 0 or self.cam_y == 0 or self.cam_phi == 0):
+        print("estimation: ", self.estimation)
+        # if(self.cam_x == 0 or self.cam_y == 0 or self.cam_phi == 0):
+        #     return [self.odom_x, self.odom_y, self.odom_phi]
+        # else:
+        #     return [self.cam_x, self.cam_y, self.cam_phi]
+        i = 0; idx = 0
+        for item in cameras.measurement_list:
+            dist = math.sqrt((self.estimation[0] - item[0])**2 + (self.estimation[1] - item[1])**2)
+            if(dist < MAX_dist):
+                MAX_dist = dist
+                idx = i
+            i += 1
+        #     print("MAX_dist: ", MAX_dist)
+            
+        # print("MAX_dist: ", MAX_dist)
+        
+        if(MAX_dist > 1e-1):
             return [self.odom_x, self.odom_y, self.odom_phi]
         else:
-            return [self.cam_x, self.cam_y, self.cam_phi]
-        
-        
+            self.cam_x = cameras.measurement_list[idx][0]
+            self.cam_y = cameras.measurement_list[idx][1]
+            self.cam_phi = cameras.measurement_list[idx][2]
+            return [self.cam_x, self.cam_y, self.odom_phi]
             
-    def measurement_fusion(self):
+    def measurement_fusion(self, cameras):
            
         # take the measurement from the odom
         odom_measurement = [self.odom_x, self.odom_y, self.odom_phi]
         
         # cam_measurement = [self.cam_x, self.cam_y, self.cam_phi]
-        cam_measurement = self.detemine_camera()
+        
+        
+        
+        cam_measurement = self.detemine_camera(cameras)
         
         
         self.kalman_odo.R_k = np.array([[1.0,   0,    0],
@@ -278,28 +340,108 @@ class Node:
             self.measurement_Kalman = optimal_state_estimate_k
             self.kalman_cam.P_k_1 = covariance_estimate_k
             self.estimation = self.measurement_Kalman
+            
+    def measurement_fusion_OWA(self):
+           
+        # take the measurement from the odom
+        odom_measurement = [self.odom_x, self.odom_y, self.odom_phi]
         
-     
+        # cam_measurement = [self.cam_x, self.cam_y, self.cam_phi]
+        cam_measurement = self.detemine_camera()
+        
     
-    def loop_fuc(self, move_type):
+        self.kalman_odo.R_k = np.array([[1.0,   0,    0],
+                                     [  0, 1.0,    0],
+                                     [  0,    0, 1.0]]) 
+        self.kalman_odo.Q_k = np.array([[0.0001,   0,    0],
+                                     [  0, 0.0001,    0],
+                                     [  0,    0, 0.0001]]) 
+        optimal_state_estimate_k, covariance_estimate_k = self.kalman_odo.sr_EKF(odom_measurement, self.estimation, 1)
+          
+        self.measurement_Kalman = optimal_state_estimate_k
+        self.kalman_odo.P_k_1 = covariance_estimate_k
+        self.estimation = self.measurement_Kalman
+        
+        odo_estimation = self.measurement_Kalman
+        
+        
+        if (self.t % 5 == 0):
+            if(sr_KALMAN and ~mr_KALMAN):
+                optimal_state_estimate_k, covariance_estimate_k = self.kalman_cam.sr_EKF(cam_measurement, self.estimation, 1)
+            elif(mr_KALMAN and ~sr_KALMAN):
+                optimal_state_estimate_k, covariance_estimate_k = self.kalman_cam.mr_EKF(cam_measurement, self.estimation, 1)
+            self.measurement_Kalman = optimal_state_estimate_k
+            self.kalman_cam.P_k_1 = covariance_estimate_k
+            self.estimation = self.measurement_Kalman     
+            
+            
+            cam_estimation = self.measurement_Kalman
+            
+            
+            err_camera = ((self.estimation[0] - self.cam_x[0])**2 + (self.estimation[1] - self.cam_y[1])**2)
+            err_odo = ((self.estimation[0] - self.odom_x[0])**2 + (self.estimation[1] - self.odom_y[1])**2)
+            
+            
+            self.camera_error_buffer.append(err_camera)
+            self.camera_error_buffer.pop(0)
+
+            
+            self.odo_error_buffer.append(err_odo)
+            self.odo_error_buffer.pop(0)
+            
+            
+            
+            sum_camera = sum(self.camera_error_buffer)
+            sum_odo = sum(self.odo_error_buffer)
+            
+            
+                
+            w1 = sum_camera / (sum_camera + sum_odo)
+            w2 = sum_odo / (sum_camera + sum_odo)
+            
+            # if(sum_camera > 30 * self.buffer_size):
+            #     w1 = 0.9
+            #     w2 = 0.1
+            
+            # w1 = 0.2
+            # w2 = 0.8
+            # if(self.idx == 1):
+                # print("odo:", self.odo_error_buffer)
+            #     print(sum_odo)
+                # print("camera: ", self.camera_error_buffer)
+            #     print(sum_camera)
+            #     print([estimation_camera, estimation_odo])
+                # print([w1, w2])
+            self.estimation = w2 * cam_estimation + w1 * odo_estimation  
+        
+    
+    def loop_fuc(self, cameras, move_type):
         
         # add the timer
         self.t += 1
         
         # 1. take measurement from odom and cam odom_measurement and cam_measurement via sub
         
+        self.print_position_measures()
         # 2. estimated the position
         
-        self.measurement_fusion()
+        self.measurement_fusion(cameras)
+        # self.estimation = [self.cam_x, self.cam_y, self.cam_phi]
         
+        # self.print_position_measures()
         # 3. decide where to go based on self.estimation
         # could add a logic to let robor decide where to go 
         if(move_type == 'move'):     
             [step, omega] = self.go_to_goal()
+            [step, omega] = [1.0, 0]
         else:
             step = 0
             omega = 0
         
+        if(self.ternimate() == 0):
+            step = 0
+            omega = 0
+            
         self.input_v = step
         self.input_omega = omega
         
@@ -307,10 +449,10 @@ class Node:
         
         self.compute_move(pol = np.array([step, omega]))
         
-        # self.theoretical_position = self.states_transform(self.theoretical_position, step, omega)
+        self.theoretical_position = self.states_transform(self.theoretical_position, step, omega)
         # self.estimation = self.states_transform(self.estimation, step, omega)
         
-                
+                               
 class Nodes:
     def __init__(self, active_robots = ['0000']):
         for tag in active_robots:
@@ -347,6 +489,7 @@ class Nodes:
 
         self.nodes = {tag: Node(release_time=0, tag=tag) for tag in active_robots}
         
+        self.cameras = Cameras(self.N_total)
         
 
         # store
@@ -360,8 +503,9 @@ class Nodes:
         self.ay = np.zeros((1, self.buffer))[0]
     
     def loop_fuc(self, move_type = 'move'):
+        # self.cameras.update_camera()
         for tag in self.nodes:
-            self.nodes[tag].loop_fuc(move_type)
+            self.nodes[tag].loop_fuc(self.cameras, move_type)
             
         # SETUP MESSAGE
         self.msg_auto_motive.data = np.array([len(self.nodes)])
@@ -370,17 +514,23 @@ class Nodes:
                     np.array([int(self.nodes[tag].address)]), self.nodes[tag].msg_auto_motive), axis=0)
 
         # SEND MOVE MESSAGE
-        rospy.sleep(1)
+        # rospy.sleep(1)
         self.publisher_auto_motive.publish(self.msg_auto_motive)
         # rospy.sleep(10)            
     
-    
+    def test_cam(self):
+        self.cameras.update_camera()
+        for i in range(self.N_total):
+            print("camera: ", self.cameras.measurement_list[i])
+            
+        for tag in self.nodes:
+            cam_measurement = self.nodes[tag].detemine_camera(self.cameras)
+            print("tag: ", tag)
+            print(cam_measurement)
     
     def print_fuc(self):
         for tag in self.nodes:
             self.nodes[tag].print_position_measures()
-
-
 
     def move(self, move_type = 'move', step_size: float = 0., theta: float =0.0):
         for tag in self.nodes:
@@ -392,7 +542,7 @@ class Nodes:
                 omega = theta
                         
             # self.nodes[tag].measurement_fusion()
-            
+            # self.print_position_measures()
             self.nodes[tag].compute_move(pol = np.array([step, omega])) # \TODO change to move
                         
             # self.nodes[tag].input_v = step
@@ -465,32 +615,6 @@ class Nodes:
             self.nodes[tag].publish_redLed(intensity=np.array([red]))
         self.update_leds()
     
-    def reinitialize_locations(self, type="all"):
-        # DUMP Json with measured information
-        meas_dict = {tag: {'pos': list(self.nodes[tag].pos[-1]), 'orien':self.nodes[tag].orien[-1]} for tag in
-                     self.forager_tags}
-        with open('reinitialize.json','w') as outfile:
-            json.dump(meas_dict, outfile)
-
-        try:
-            with open('reinitialize.json') as json_file:
-                mapper = json.load(json_file)
-        except:
-            print('FOUT in REINITIALIZE')
-
-        reinitialized_tags = []
-        for tag in mapper:
-            if tag in self.nodes:
-                reinitialized_tags += [tag]
-                if type=="all":
-                    self.nodes[tag].pos[-1] = np.array(mapper[tag]['pos'])
-                    self.nodes[tag].orien[-1] = mapper[tag]['orien']
-                elif type=="pos":
-                    self.nodes[tag].pos[-1] = np.array(mapper[tag]['pos'])
-                elif type=="orien":
-                    self.nodes[tag].orien[-1] = mapper[tag]['orien']
-        return reinitialized_tags
-
     def print_position_measures(self):
         for tag in self.nodes:
             self.nodes[tag].print_position_measures()
@@ -515,7 +639,6 @@ class Nodes:
                                        'y': copy.deepcopy(self.nodes[tag].theoretical_position[1]),
                                        'phi': copy.deepcopy(self.nodes[tag].theoretical_position[2])
                                        }
-        print(self.ax)
         self.ax[ :-1] = self.ax[ 1:]
         self.ay[ :-1] = self.ay[ 1:]
         

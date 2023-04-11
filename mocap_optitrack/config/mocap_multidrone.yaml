@@ -4,17 +4,17 @@
 #
         
 rigid_bodies:
-    '1':
+    '0':
         pose: Bebop1/pose
         pose2d: Bebop1/ground_pose
         child_frame_id: Bebop1/base_link
         parent_frame_id: world
-    '2':
+    '1':
         pose: Bebop2/pose
         pose2d: Bebop2/ground_pose
         child_frame_id: Bebop2/base_link
         parent_frame_id: world
-    '3':
+    '2':
         pose: Bebop3/pose
         pose2d: Bebop3/ground_pose
         child_frame_id: Bebop3/base_link
