@@ -408,8 +408,6 @@ class Node:
                 
             w1 = sum_camera / (sum_camera + sum_odo + 1) 
             w2 = (sum_odo + 1) / (sum_camera + sum_odo + 1)
-            print("w1: ", w1)
-            print("w2: ", w2)
             
             # w2 = 0.95
             # w1 = 0.05
@@ -420,13 +418,7 @@ class Node:
             
             # w1 = 0.2
             # w2 = 0.8
-            # if(self.idx == 1):
-                # print("odo:", self.odo_error_buffer)
-            #     print(sum_odo)
-                # print("camera: ", self.camera_error_buffer)
-            #     print(sum_camera)
-            #     print([estimation_camera, estimation_odo])
-                # print([w1, w2])
+            
             self.estimation = w2 * cam_estimation + w1 * odo_estimation  
         
     
@@ -639,7 +631,9 @@ class Nodes:
                                        'cam_phi': copy.deepcopy(self.nodes[tag].cam_phi),
                                        'x': copy.deepcopy(self.nodes[tag].theoretical_position[0]),
                                        'y': copy.deepcopy(self.nodes[tag].theoretical_position[1]),
-                                       'phi': copy.deepcopy(self.nodes[tag].theoretical_position[2])
+                                       'phi': copy.deepcopy(self.nodes[tag].theoretical_position[2]),
+                                       'P_k_odo': copy.deepcopy(self.nodes[tag].kalman_odo.P_k_1),
+                                       'P_k_cam': copy.deepcopy(self.nodes[tag].kalman_cam.P_k_1)
                                        }
         self.ax[ :-1] = self.ax[ 1:]
         self.ay[ :-1] = self.ay[ 1:]
