@@ -30,6 +30,7 @@ std_vlt_rot = 10
 PI = math.pi
 
 MODE = "cam"
+MODE = "kalman"
 
 sr_KALMAN = 1
 mr_KALMAN = 0
@@ -59,6 +60,7 @@ class Cameras:
         self.number = N
         self.cameras = {tag: Camera(tag = tag) for tag in range(N)}
         self.measurement_list = np.zeros([N, 3])
+        self.measurement_list_prev = np.zeros([N, 3])
         
     def update_camera(self):
         self.measurement_list = np.zeros([self.number, 3])
@@ -100,6 +102,8 @@ class Node:
         self.cam_x = self.x
         self.cam_y = self.y
         self.cam_phi = self.phi
+        
+        self.cam_prev = np.array([self.x, self.y, self.phi])
         
         self.theoretical_position = np.array([self.x, self.y, self.phi])
         self.estimation = np.array([self.x, self.y, self.phi])
@@ -244,7 +248,8 @@ class Node:
             self.update_reset = False
         elif type == 'theor':
             self.update_reset = True
-            self.msg_reset = np.array([0, self.pos[-1][0], self.pos[-1][1], self.orien[-1]])
+            # self.msg_reset = np.array([0, self.pos[-1][0], self.pos[-1][1], self.orien[-1]])
+            self.msg_reset = np.array([0, self.estimation[0], self.estimation[1], self.estimation[2]])
             
     
     def states_transform(self, X, v, omega):
@@ -295,7 +300,12 @@ class Node:
             i += 1
 
         
-        if(MAX_dist > 1e-1):
+        dist_odo_cam = math.sqrt((self.odom_x - cameras.measurement_list[idx][0])**2 + (self.odom_y - cameras.measurement_list[idx][1])**2)
+        # print("odom: ", [self.odom_x, self.odom_y])
+        # print("cam: ", [cameras.measurement_list[idx][0], cameras.measurement_list[idx][1]])
+        
+        # print("dist_odo_cam", dist_odo_cam)
+        if(MAX_dist > 1 or dist_odo_cam > 0.3):
             return [self.odom_x, self.odom_y, self.odom_phi]
         else:
             self.cam_x = cameras.measurement_list[idx][0]
@@ -311,9 +321,9 @@ class Node:
         # take the measurement from the odom
         cam_measurement = self.detemine_camera(cameras)
         
-        # for test
-        [self.cam_x, self.cam_y, self.odom_phi] = [self.odom_x, self.odom_y, self.odom_phi]   
-        cam_measurement = [self.odom_x, self.odom_y, self.odom_phi]      
+        # # for test
+        # [self.cam_x, self.cam_y, self.odom_phi] = [self.odom_x, self.odom_y, self.odom_phi]   
+        # cam_measurement = [self.odom_x, self.odom_y, self.odom_phi]      
         
         self.print_position_measures()
         
@@ -365,7 +375,7 @@ class Node:
         odo_estimation = self.measurement_Kalman
         
         
-        if (self.t % 5 == 0):
+        if (self.t % 1 == 0):
             if(sr_KALMAN and ~mr_KALMAN):
                 optimal_state_estimate_k, covariance_estimate_k = self.kalman_cam.sr_EKF(cam_measurement, self.estimation, 1)
             elif(mr_KALMAN and ~sr_KALMAN):
@@ -378,8 +388,8 @@ class Node:
             cam_estimation = self.measurement_Kalman
             
             
-            err_camera = ((self.estimation[0] - self.cam_x[0])**2 + (self.estimation[1] - self.cam_y[1])**2)
-            err_odo = ((self.estimation[0] - self.odom_x[0])**2 + (self.estimation[1] - self.odom_y[1])**2)
+            err_camera = ((self.estimation[0] - self.cam_x)**2 + (self.estimation[1] - self.cam_y)**2)
+            err_odo = ((self.estimation[0] - self.odom_x)**2 + (self.estimation[1] - self.odom_y)**2)
             
             
             self.camera_error_buffer.append(err_camera)
@@ -396,8 +406,13 @@ class Node:
             
             
                 
-            w1 = sum_camera / (sum_camera + sum_odo)
-            w2 = sum_odo / (sum_camera + sum_odo)
+            w1 = sum_camera / (sum_camera + sum_odo + 1) 
+            w2 = (sum_odo + 1) / (sum_camera + sum_odo + 1)
+            print("w1: ", w1)
+            print("w2: ", w2)
+            
+            # w2 = 0.95
+            # w1 = 0.05
             
             # if(sum_camera > 30 * self.buffer_size):
             #     w1 = 0.9
@@ -424,14 +439,14 @@ class Node:
         [odom_measurement, cam_measurement] = self.measurement_update(cameras)
         
         # 2. estimated the position
-        self.measurement_fusion(odom_measurement, cam_measurement)
+        self.measurement_fusion_OWA(odom_measurement, cam_measurement)
         # self.estimation = [self.cam_x, self.cam_y, self.cam_phi]
         
         # 3. decide where to go based on self.estimation
         # could add a logic to let robor decide where to go 
         if(move_type == 'move'):     
             [step, omega] = self.go_to_goal()
-            [step, omega] = [1.0, 0]
+            [step, omega] = [2.0, 0]
         else:
             step = 0
             omega = 0

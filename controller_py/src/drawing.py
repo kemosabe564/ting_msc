@@ -13,7 +13,7 @@ import pandas as pd
 P = 3
 
 robot_N = 3
-T = 10
+T = 30
 
 if __name__ == "__main__":
 
@@ -57,21 +57,31 @@ if __name__ == "__main__":
     
     t = np.arange(T)
     
+    # a = pd.DataFrame(robot_history['2']).T
+    # print('2')
+    # print(a)
     a = pd.DataFrame(robot_history['0']).T
+    print('1')
     print(a)
+    # a = pd.DataFrame(robot_history['0']).T
+    # print('0')
+    # print(a)
     # print(a['pos_x'])
 
     plt.figure(figsize = (8, 6), dpi = 80)
     plt.plot(a['pos_x'], a['pos_y'], '.')
+    plt.title('odo')
     
     # plt.figure(figsize = (8, 6), dpi = 80)
     # plt.plot(a['x'], a['y'], '.')
     
     plt.figure(figsize = (8, 6), dpi = 80)
     plt.plot(a['cam_x'], a['cam_y'], '.')
+    plt.title('camera')
     
     plt.figure(figsize = (8, 6), dpi = 80)
     plt.plot(a['estimation_x'], a['estimation_y'], '.')
+    plt.title('estimation')
     
     plt.show()
     

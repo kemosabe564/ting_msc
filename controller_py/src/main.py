@@ -30,18 +30,21 @@ if __name__ == "__main__":
     last_saved_time = 0
     step_size = 1.0
     theta = 0.0
-    for t in range(last_saved_time, 10):
+    for t in range(last_saved_time, 30):
     
         print("t: ", t)
         nodes.store_data(t)
         
         nodes.loop_fuc('move')
-        # nodes.move('still', step_size= 1.0, theta = 0.)
-        
-        nodes.plot_data(t)
+        if(t%3 == 0):
+            nodes.reset('theor')
+            
+        # nodes.move('still', step_size= 1.0, theta = 0.)       
+        # nodes.plot_data(t)
         
         # nodes.test_cam()
-        rospy.sleep(1)
+        
+        rospy.sleep(0.05)
 
     nodes.save_data(0)
     
