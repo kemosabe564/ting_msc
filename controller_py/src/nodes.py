@@ -53,12 +53,12 @@ class Camera:
         self.tag = tag   
         self.timer = 0.0
         self.listener_camera = rospy.Subscriber('Bebop{}/ground_pose'.format(self.tag + 1), Pose2D, self.listen_optitrack_callback)
-        self.listener_camera_timer = rospy.Subscriber('Bebop{}/pose'.format(self.tag + 1), Pose2D, self.listen_optitrack_timer_callback)
+        self.listener_camera_timer = rospy.Subscriber('Bebop{}/pose'.format(self.tag + 1), Pose, self.listen_optitrack_timer_callback)
               
     # functions for subscribe callback    
     def listen_optitrack_callback(self, optiMsg):
         self.cam_x = optiMsg.x
-        self.cam_y = -optiMsg.y
+        self.cam_y = optiMsg.y
         self.cam_phi = optiMsg.theta
         
     def listen_optitrack_timer_callback(self, optiMsg):
@@ -76,7 +76,7 @@ class Cameras:
         i = 0
         for tag in self.cameras:
             self.measurement_list[i][0] = 2 - self.cameras[tag].cam_x
-            self.measurement_list[i][1] = self.cameras[tag].cam_y
+            self.measurement_list[i][1] = -self.cameras[tag].cam_y
             self.measurement_list[i][2] = self.cameras[tag].cam_phi
             self.measurement_list[i][3] = self.cameras[tag].timer
             i += 1
@@ -591,7 +591,7 @@ class Nodes:
                 omega = theta
                         
             self.nodes[tag].compute_move(pol = np.array([step, omega])) # \TODO change to move
-            
+        self.print_position_measures()    
         # SETUP MESSAGE
         self.msg_auto_motive.data = np.array([len(self.nodes)])
         for tag in self.nodes:
@@ -599,7 +599,7 @@ class Nodes:
                     np.array([int(self.nodes[tag].address)]), self.nodes[tag].msg_auto_motive), axis=0)
 
         # SEND MOVE MESSAGE
-        rospy.sleep(1)
+        rospy.sleep(0.1)
         self.publisher_auto_motive.publish(self.msg_auto_motive)
         # rospy.sleep(10)
 

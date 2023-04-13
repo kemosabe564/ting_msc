@@ -2,12 +2,15 @@ import copy
 import rospy
 import pickle
 import numpy as np
-import string
+from std_msgs.msg import String
 from nav_msgs.msg import Odometry
 
 # for optitrack camera
 from geometry_msgs.msg import Pose2D
 from geometry_msgs.msg import Pose
+
+
+
 
 class Recorder:
     def __init__(self, tag):
@@ -85,23 +88,31 @@ class Recorders:
         with open('./data/all_data_t{}_RUN{}.p'.format(t, 1),'wb') as fp:
             pickle.dump(self.saved_data, fp, protocol=pickle.HIGHEST_PROTOCOL)
 
-
-# def lisnter(self, textMsg):
-#     if textMsg
-#     return 1
+class TAG:
+    def __init__(self) -> None:
+        self.tag = "run"
+        self.tag_subscriber = rospy.Subscriber('elisa3_tag', String, self.lisnter)
+    
+    def lisnter(self, textMsg):
+        self.tag = textMsg.data
+        print(self.tag)
+        
 
 if __name__ == "__main__":
     print("start") 
     recoders = Recorders(3)
     t = 0
-    tag_subscriber = rospy.Subscriber('elisa3_tag', string, lisnter)
+    Tag = TAG()
     while(1):
     
-        print("t: ", t)
-        recoders.store_data(t)
-        
+        # print("t: ", t)
         t += 1
-        if (t > 10000):
+        recoders.store_data(t)
+        rospy.sleep(0.001)
+        
+        # if (Tag.tag == "stop"):
+        #     break
+        if(t > 6e5):
             break
 
     recoders.save_data(0)  
