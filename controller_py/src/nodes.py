@@ -20,6 +20,7 @@ from geometry_msgs.msg import Twist
 
 # for optitrack camera
 from geometry_msgs.msg import Pose2D
+from geometry_msgs.msg import Pose
 
 
 wheel_distance = 0.041
@@ -40,6 +41,9 @@ with open('mapper.json') as json_file:
 
 obstacle_avoidance = utils.ObstacleAvoidance()
 
+
+
+
 class Camera: 
     def __init__(self, tag):
         
@@ -47,7 +51,9 @@ class Camera:
         self.cam_y = 0.0
         self.cam_phi = 0.0
         self.tag = tag   
+        self.timer = 0.0
         self.listener_camera = rospy.Subscriber('Bebop{}/ground_pose'.format(self.tag + 1), Pose2D, self.listen_optitrack_callback)
+        self.listener_camera_timer = rospy.Subscriber('Bebop{}/pose'.format(self.tag + 1), Pose2D, self.listen_optitrack_timer_callback)
               
     # functions for subscribe callback    
     def listen_optitrack_callback(self, optiMsg):
@@ -55,20 +61,24 @@ class Camera:
         self.cam_y = -optiMsg.y
         self.cam_phi = optiMsg.theta
         
+    def listen_optitrack_timer_callback(self, optiMsg):
+        self.timer = optiMsg.time
+        
 class Cameras:
     def __init__(self, N):
         self.number = N
         self.cameras = {tag: Camera(tag = tag) for tag in range(N)}
-        self.measurement_list = np.zeros([N, 3])
-        self.measurement_list_prev = np.zeros([N, 3])
+        self.measurement_list = np.zeros([N, 4])
+        self.measurement_list_prev = np.zeros([N, 4])
         
     def update_camera(self):
-        self.measurement_list = np.zeros([self.number, 3])
+        self.measurement_list = np.zeros([self.number, 4])
         i = 0
         for tag in self.cameras:
-            self.measurement_list[i][0] = self.cameras[tag].cam_x
+            self.measurement_list[i][0] = 2 - self.cameras[tag].cam_x
             self.measurement_list[i][1] = self.cameras[tag].cam_y
             self.measurement_list[i][2] = self.cameras[tag].cam_phi
+            self.measurement_list[i][3] = self.cameras[tag].timer
             i += 1
             
 class Node:
@@ -98,12 +108,15 @@ class Node:
         self.odom_x = self.x
         self.odom_y = self.y
         self.odom_phi = self.phi
+        self.odom_timer = 0.0
         
         self.cam_x = self.x
         self.cam_y = self.y
         self.cam_phi = self.phi
+        self.cam_timer = 0.0
         
         self.cam_prev = np.array([self.x, self.y, self.phi])
+        self.MIN_dist_prev = 1
         
         self.theoretical_position = np.array([self.x, self.y, self.phi])
         self.estimation = np.array([self.x, self.y, self.phi])
@@ -162,7 +175,7 @@ class Node:
         self.robot_meas_pose = np.round(np.array([float(odomMsg.pose.pose.position.x),
                                                   float(odomMsg.pose.pose.position.y)]),3)
         self.robot_meas_orien = np.round(float(odomMsg.pose.pose.position.z),3)
-        self.robot_meas_time = odomMsg.header.stamp.secs
+        self.odom_timer = odomMsg.header.stamp.secs
         self.odom_x = float(odomMsg.pose.pose.position.x)
         self.odom_y = float(odomMsg.pose.pose.position.y)
         self.odom_phi = float(odomMsg.pose.pose.position.z)
@@ -284,9 +297,9 @@ class Node:
     def reset_goal(self):
         [self.input_v, self.input_omega] = [0.0, 0.0]
     
-    def detemine_camera(self, cameras):
+    def determine_camera(self, cameras):
         # update the camera
-        MAX_dist = 1e5
+        MIN_dist = 1e5
         cameras.update_camera()
         
         # print("estimation: ", self.estimation)
@@ -294,8 +307,15 @@ class Node:
         i = 0; idx = 0
         for item in cameras.measurement_list:
             dist = math.sqrt((self.estimation[0] - item[0])**2 + (self.estimation[1] - item[1])**2)
-            if(dist < MAX_dist):
-                MAX_dist = dist
+            print("est: ", [self.estimation[0], self.estimation[1]])
+            print('\n')
+            print("cam: ", [item[0], item[1]])
+            print('\n')
+            print("dist", dist)
+            print("MIN_dist", MIN_dist)
+            
+            if(dist < MIN_dist):
+                MIN_dist = dist
                 idx = i
             i += 1
 
@@ -305,7 +325,30 @@ class Node:
         # print("cam: ", [cameras.measurement_list[idx][0], cameras.measurement_list[idx][1]])
         
         # print("dist_odo_cam", dist_odo_cam)
-        if(MAX_dist > 1 or dist_odo_cam > 0.3):
+        
+        # if(MIN_dist > 1 or dist_odo_cam > 0.3):
+        
+        
+        # self.cam_x = cameras.measurement_list[idx][0]
+        # self.cam_y = cameras.measurement_list[idx][1]
+        # self.cam_phi = cameras.measurement_list[idx][2]
+        self.cam_timer = cameras.measurement_list[idx][3]
+        
+        
+        if(self.t == 1):
+            self.cam_x = cameras.measurement_list[idx][0]
+            self.cam_y = cameras.measurement_list[idx][1]
+            self.cam_phi = cameras.measurement_list[idx][2]
+            self.MIN_dist_prev = MIN_dist
+            return [self.cam_x, self.cam_y, self.odom_phi]
+        
+        print('\n')
+        print("camera: ", [self.cam_x, self.cam_y, self.odom_phi])
+        print('\n')
+        
+        error = abs(MIN_dist - self.MIN_dist_prev) / self.MIN_dist_prev
+        print("error", error)
+        if(error > 0.9 or MIN_dist > 1):
             return [self.odom_x, self.odom_y, self.odom_phi]
         else:
             self.cam_x = cameras.measurement_list[idx][0]
@@ -319,8 +362,8 @@ class Node:
         odom_measurement = [self.odom_x, self.odom_y, self.odom_phi]        
         
         # take the measurement from the odom
-        cam_measurement = self.detemine_camera(cameras)
-        
+        cam_measurement = self.determine_camera(cameras)
+        [self.cam_x, self.cam_y, self.cam_phi] = cam_measurement
         # # for test
         # [self.cam_x, self.cam_y, self.odom_phi] = [self.odom_x, self.odom_y, self.odom_phi]   
         # cam_measurement = [self.odom_x, self.odom_y, self.odom_phi]      
@@ -409,8 +452,8 @@ class Node:
             w1 = sum_camera / (sum_camera + sum_odo + 1) 
             w2 = (sum_odo + 1) / (sum_camera + sum_odo + 1)
             
-            # w2 = 0.95
-            # w1 = 0.05
+            w2 = 0.99
+            w1 = 0.01
             
             # if(sum_camera > 30 * self.buffer_size):
             #     w1 = 0.9
@@ -418,6 +461,9 @@ class Node:
             
             # w1 = 0.2
             # w2 = 0.8
+            
+            self.OWA_w1 = w1
+            self.OWA_w2 = w2
             
             self.estimation = w2 * cam_estimation + w1 * odo_estimation  
         
@@ -438,7 +484,7 @@ class Node:
         # could add a logic to let robor decide where to go 
         if(move_type == 'move'):     
             [step, omega] = self.go_to_goal()
-            [step, omega] = [2.0, 0]
+            [step, omega] = [1.5, 0]
         else:
             step = 0
             omega = 0
@@ -454,7 +500,7 @@ class Node:
         
         self.compute_move(pol = np.array([step, omega]))
         
-        self.theoretical_position = self.states_transform(self.theoretical_position, step, omega)
+        # self.theoretical_position = self.states_transform(self.theoretical_position, step, omega)
         # self.estimation = self.states_transform(self.estimation, step, omega)
         
                                
@@ -519,7 +565,7 @@ class Nodes:
         # SEND MOVE MESSAGE
         # rospy.sleep(1)
         self.publisher_auto_motive.publish(self.msg_auto_motive)
-        rospy.sleep(1)            
+        rospy.sleep(0.1)            
     
     def test_cam(self):
         self.cameras.update_camera()
@@ -527,7 +573,7 @@ class Nodes:
             print("camera: ", self.cameras.measurement_list[i])
             
         for tag in self.nodes:
-            cam_measurement = self.nodes[tag].detemine_camera(self.cameras)
+            cam_measurement = self.nodes[tag].determine_camera(self.cameras)
             print("tag: ", tag)
             print(cam_measurement)
     
@@ -633,7 +679,9 @@ class Nodes:
                                        'y': copy.deepcopy(self.nodes[tag].theoretical_position[1]),
                                        'phi': copy.deepcopy(self.nodes[tag].theoretical_position[2]),
                                        'P_k_odo': copy.deepcopy(self.nodes[tag].kalman_odo.P_k_1),
-                                       'P_k_cam': copy.deepcopy(self.nodes[tag].kalman_cam.P_k_1)
+                                       'P_k_cam': copy.deepcopy(self.nodes[tag].kalman_cam.P_k_1),
+                                       'odom_timer': copy.deepcopy(self.nodes[tag].odom_timer),
+                                       'cam_timer': copy.deepcopy(self.nodes[tag].cam_timer)
                                        }
         self.ax[ :-1] = self.ax[ 1:]
         self.ay[ :-1] = self.ay[ 1:]
