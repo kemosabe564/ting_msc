@@ -132,6 +132,9 @@ class Node:
         self.odo_error_buffer = [0.1] * self.buffer_size
         self.camera_error_buffer = [0.1] * self.buffer_size
         
+        self.OWA_w1 = 0.0
+        self.OWA_w2 = 0.0
+        
         self.goalX = np.array([0.0, 0.5])
         self.setup = {"vmax":0.5, "gtg_scaling":0.0001, "K_p":0.01, "ao_scaling":0.00005}
 
@@ -453,15 +456,13 @@ class Node:
             w1 = sum_camera / (sum_camera + sum_odo + 1) 
             w2 = (sum_odo + 1) / (sum_camera + sum_odo + 1)
             
-            w2 = 0.99
-            w1 = 0.01
+            # w2 = 0.99
+            # w1 = 0.01
             
             # if(sum_camera > 30 * self.buffer_size):
             #     w1 = 0.9
             #     w2 = 0.1
             
-            # w1 = 0.2
-            # w2 = 0.8
             
             self.OWA_w1 = w1
             self.OWA_w2 = w2
@@ -547,10 +548,10 @@ class Nodes:
         # store
         self.saved_data = dict()
         
-        # plot
-        self.buffer = 10
-        self.ax = np.zeros((1, self.buffer))[0]
-        self.ay = np.zeros((1, self.buffer))[0]
+        # # plot
+        # self.buffer = 10
+        # self.ax = np.zeros((1, self.buffer))[0]
+        # self.ay = np.zeros((1, self.buffer))[0]
     
     def loop_fuc(self, move_type = 'move'):
         # self.cameras.update_camera()
@@ -682,25 +683,27 @@ class Nodes:
                                        'P_k_odo': copy.deepcopy(self.nodes[tag].kalman_odo.P_k_1),
                                        'P_k_cam': copy.deepcopy(self.nodes[tag].kalman_cam.P_k_1),
                                        'odom_timer': copy.deepcopy(self.nodes[tag].odom_timer),
-                                       'cam_timer': copy.deepcopy(self.nodes[tag].cam_timer)
+                                       'cam_timer': copy.deepcopy(self.nodes[tag].cam_timer),
+                                       'OWA_w1': copy.deepcopy(self.nodes[tag].OWA_w1),
+                                       'OWA_w2': copy.deepcopy(self.nodes[tag].OWA_w2)
                                        }
-        self.ax[ :-1] = self.ax[ 1:]
-        self.ay[ :-1] = self.ay[ 1:]
+        # self.ax[ :-1] = self.ax[ 1:]
+        # self.ay[ :-1] = self.ay[ 1:]
         
-        self.ax[-1] = self.nodes['0'].estimation[0]
-        self.ay[-1] = self.nodes['0'].estimation[1]
+        # self.ax[-1] = self.nodes['0'].estimation[0]
+        # self.ay[-1] = self.nodes['0'].estimation[1]
 
     def save_data(self, t):
         with open('./data/saved_data_t{}_RUN{}.p'.format(t, 1),'wb') as fp:
             pickle.dump(self.saved_data, fp, protocol=pickle.HIGHEST_PROTOCOL)
 
-    def plot_data(self, t):
-        plt.ion()
-        plt.clf()
-        plt.plot(self.ax, self.ay, '.')
+    # def plot_data(self, t):
+    #     plt.ion()
+    #     plt.clf()
+    #     plt.plot(self.ax, self.ay, '.')
         
-        plt.pause(0.1)
-        plt.ioff()
+    #     plt.pause(0.1)
+    #     plt.ioff()
 
 
 
