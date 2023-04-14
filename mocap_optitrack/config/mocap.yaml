@@ -1,39 +1,23 @@
-# #
-# # Definition of all trackable objects
-# # Identifier corresponds to Trackable ID set in Tracking Tools
-# #
-# rigid_bodies:
-#     '0':
-#         address: 3808                                                                                                            
-#    #Use this format to create each new rigid body
-
-#    #'2':
-#    #    pose: rigid_body_2/pose
-#    #    pose2d: rigid_body_2/ground_pose
-#    #    frame_id: rigid_body_2/base_link
-
-# optitrack_config:
-# #	multicast_address: 192.169.209.203
-#        multicast_address: 224.0.0.1
-#
-
-
 # Definition of all trackable objects
 # Identifier corresponds to Trackable ID set in Tracking Tools
 #
+
+# (x, y) = (2 - z0, 1 + x0)
+
+
 rigid_bodies:
     '0':
         address: 3808
-        xPos: 0.97
-        yPos: 0.26
+        xPos: 0.21
+        yPos: 0.96
     '1':
         address: 3801
-        xPos: -0.04
-        yPos: 0.98   
+        xPos: 0.01
+        yPos: -0.43  
     '2':
         address: 3222
-        xPos: -0.03
-        yPos: 0.04                                                                                                    
+        xPos: 0.63
+        yPos: -0.40                                                                                                    
    #Use this format to create each new rigid body
 
    #'2':

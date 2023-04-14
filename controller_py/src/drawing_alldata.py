@@ -13,7 +13,7 @@ import pandas as pd
 P = 3
 
 robot_N = 3
-T = 10
+T = 10000
 
 if __name__ == "__main__":
 

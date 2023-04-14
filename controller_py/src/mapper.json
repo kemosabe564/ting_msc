@@ -1,6 +1,6 @@
 {
-  "0": {"address": "3808", "optitrack_id": 1, "pos":[0.78, 0.26], "orien":0.0},
-  "1": {"address": "3801", "optitrack_id": 1, "pos":[-0.04, 0.98], "orien":0.0},
-  "2": {"address": "3222", "optitrack_id": 1, "pos":[-0.03, 0.04], "orien":0.0}
+  "0": {"address": "3808", "optitrack_id": 1, "pos":[0.21, 0.96], "orien":0.0},
+  "1": {"address": "3801", "optitrack_id": 1, "pos":[0.01, -0.43], "orien":0.0},
+  "2": {"address": "3222", "optitrack_id": 1, "pos":[0.63, -0.40], "orien":0.0}
 }
 

@@ -75,8 +75,9 @@ class Cameras:
         self.measurement_list = np.zeros([self.number, 4])
         i = 0
         for tag in self.cameras:
-            self.measurement_list[i][0] = 2 - self.cameras[tag].cam_x
-            self.measurement_list[i][1] = -self.cameras[tag].cam_y
+            # x axis
+            self.measurement_list[i][0] = 2 + self.cameras[tag].cam_y
+            self.measurement_list[i][1] = 1 + self.cameras[tag].cam_x
             self.measurement_list[i][2] = self.cameras[tag].cam_phi
             self.measurement_list[i][3] = self.cameras[tag].timer
             i += 1
