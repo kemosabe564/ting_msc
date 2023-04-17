@@ -270,8 +270,8 @@ class Node:
             
     
     def states_transform(self, X, v, omega):
-        X[0] = X[0] + v * math.cos(X[2]) / 1000 
-        X[1] = X[1] + v * math.sin(X[2]) / 1000 
+        X[0] = X[0] + v * math.cos(X[2]) / 1000 * 0.1
+        X[1] = X[1] + v * math.sin(X[2]) / 1000 * 0.1
         X[2] = X[2] + omega
         return X
 
@@ -324,7 +324,7 @@ class Node:
             i += 1
 
         
-        dist_odo_cam = math.sqrt((self.odom_x - cameras.measurement_list[idx][0])**2 + (self.odom_y - cameras.measurement_list[idx][1])**2)
+        # dist_odo_cam = math.sqrt((self.odom_x - cameras.measurement_list[idx][0])**2 + (self.odom_y - cameras.measurement_list[idx][1])**2)
         # print("odom: ", [self.odom_x, self.odom_y])
         # print("cam: ", [cameras.measurement_list[idx][0], cameras.measurement_list[idx][1]])
         
@@ -333,16 +333,13 @@ class Node:
         # if(MIN_dist > 1 or dist_odo_cam > 0.3):
         
         
-        # self.cam_x = cameras.measurement_list[idx][0]
-        # self.cam_y = cameras.measurement_list[idx][1]
-        # self.cam_phi = cameras.measurement_list[idx][2]
+        self.cam_x = cameras.measurement_list[idx][0]
+        self.cam_y = cameras.measurement_list[idx][1]
+        self.cam_phi = cameras.measurement_list[idx][2]
         self.cam_timer = cameras.measurement_list[idx][3]
         
         
         if(self.t == 1):
-            self.cam_x = cameras.measurement_list[idx][0]
-            self.cam_y = cameras.measurement_list[idx][1]
-            self.cam_phi = cameras.measurement_list[idx][2]
             self.MIN_dist_prev = MIN_dist
             return [self.cam_x, self.cam_y, self.odom_phi]
         
@@ -353,14 +350,24 @@ class Node:
         error = abs(MIN_dist - self.MIN_dist_prev) / self.MIN_dist_prev
         print("error", error)
         self.MIN_dist_prev = MIN_dist
-        if(error > 0.9 or MIN_dist > 1):
-            return [self.odom_x, self.odom_y, self.odom_phi]
-        else:
-            self.cam_x = cameras.measurement_list[idx][0]
-            self.cam_y = cameras.measurement_list[idx][1]
-            self.cam_phi = cameras.measurement_list[idx][2]
+        # if(error > 0.9 or MIN_dist > 1):
+        #     return [self.odom_x, self.odom_y, self.odom_phi]
+        # else:
+        #     self.cam_x = cameras.measurement_list[idx][0]
+        #     self.cam_y = cameras.measurement_list[idx][1]
+        #     self.cam_phi = cameras.measurement_list[idx][2]
+        #     return [self.cam_x, self.cam_y, self.odom_phi]
+        
+        if(MIN_dist < 1 and error < 0.9):
             return [self.cam_x, self.cam_y, self.odom_phi]
-    
+        else:
+            
+            theta = math.atan2((self.cam_y - self.estimation[1]), (self.cam_x - self.estimation[0]))
+            head = self.heading - theta
+            if(abs(head) < 0.5):
+                return [self.cam_x, self.cam_y, self.odom_phi]
+            return [self.odom_x, self.odom_y, self.odom_phi]
+        
     def measurement_update(self, cameras):
         
         # take the measurement from the odom
@@ -423,7 +430,7 @@ class Node:
         odo_estimation = self.measurement_Kalman
         
         
-        if (self.t % 5 == 0):
+        if (self.t % 1 == 0):
             if(sr_KALMAN and ~mr_KALMAN):
                 optimal_state_estimate_k, covariance_estimate_k = self.kalman_cam.sr_EKF(cam_measurement, self.estimation, 1)
             elif(mr_KALMAN and ~sr_KALMAN):
@@ -504,7 +511,7 @@ class Node:
         self.compute_move(pol = np.array([step, omega]))
         
         # self.theoretical_position = self.states_transform(self.theoretical_position, step, omega)
-        # self.estimation = self.states_transform(self.estimation, step, omega)
+        self.estimation = self.states_transform(self.estimation, step, omega)
         
                                
 class Nodes:
@@ -602,7 +609,7 @@ class Nodes:
                     np.array([int(self.nodes[tag].address)]), self.nodes[tag].msg_auto_motive), axis=0)
 
         # SEND MOVE MESSAGE
-        rospy.sleep(0.1)
+        rospy.sleep(0.05)
         self.publisher_auto_motive.publish(self.msg_auto_motive)
         # rospy.sleep(10)
 

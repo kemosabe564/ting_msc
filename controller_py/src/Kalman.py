@@ -25,8 +25,8 @@ class Kalman:
                              [  0, 1.0,   0],
                              [  0,   0, 1.0]])
                         
-        self.R_k = np.array([[0.3,   0,    0],
-                             [  0, 0.3,    0],
+        self.R_k = np.array([[1.0,   0,    0],
+                             [  0, 1.0,    0],
                              [  0,    0, 1.0]]) 
          
         self.sensor_noise_w_k = np.array([0.00, 0.00, 0.00])

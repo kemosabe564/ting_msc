@@ -13,7 +13,7 @@ import pandas as pd
 P = 3
 
 robot_N = 3
-T = 200
+T = 300
 
 if __name__ == "__main__":
 
@@ -53,7 +53,15 @@ if __name__ == "__main__":
     # a = pd.DataFrame(robot_history['2']).T
     # print('2')
     # print(a)
-    a = pd.DataFrame(robot_history['1']).T
+    plt.figure(figsize = (8, 6), dpi = 80)
+
+    for i in range(robot_N):
+        a = pd.DataFrame(robot_history[str(i)]).T
+    
+        plt.plot(a['estimation_x'][2:], a['estimation_y'][2:], linestyle='--', marker='o', label='line with marker')
+    plt.title('odo')
+    
+    a = pd.DataFrame(robot_history['2']).T
     print('1')
     print(a)
     # a = pd.DataFrame(robot_history['0']).T
@@ -62,34 +70,41 @@ if __name__ == "__main__":
     # print(a['pos_x'])
 
     plt.figure(figsize = (8, 6), dpi = 80)
-    plt.plot(a['pos_x'][2:], a['pos_y'][2:], linestyle='--', marker='o', color='b', label='line with marker')
+    plt.plot(a['pos_x'][2:], a['pos_y'][2:], linestyle='--', marker='o', label='line with marker')
     plt.title('odo')
     
     # plt.figure(figsize = (8, 6), dpi = 80)
     # plt.plot(a['x'], a['y'], '.')
     
     plt.figure(figsize = (8, 6), dpi = 80)
-    plt.plot(a['cam_x'][2:], a['cam_y'][2:], linestyle='--', marker='o', color='b', label='line with marker')
+    plt.plot(a['cam_x'][2:], a['cam_y'][2:], linestyle='--', marker='o', label='line with marker')
     plt.title('camera')
     
     plt.figure(figsize = (8, 6), dpi = 80)
-    plt.plot(a['estimation_x'][2:], a['estimation_y'][2:], linestyle='--', marker='o', color='b', label='line with marker')
+    plt.plot(a['estimation_x'][2:], a['estimation_y'][2:], linestyle='--', marker='o', label='line with marker')
     plt.title('estimation')
     
     
     plt.figure(figsize = (8, 6), dpi = 80)
-    plt.plot(t, a['OWA_w1'][2:], linestyle='--', marker='o', color='b', label='line with marker')
+    plt.plot(t, a['OWA_w1'][2:], linestyle='--', marker='o', label='line with marker')
     plt.title('OWA_w1')
     
     plt.figure(figsize = (8, 6), dpi = 80)
-    plt.plot(t, a['OWA_w2'][2:], linestyle='--', marker='o', color='b', label='line with marker')
+    plt.plot(t, a['OWA_w2'][2:], linestyle='--', marker='o', label='line with marker')
     plt.title('OWA_w2')
+
+    plt.figure(figsize = (8, 6), dpi = 80)
+    plt.plot(t, a['estimation_x'][2:], linestyle='--', marker='o', label='line with marker')
+    plt.title('estimation_x')
+    
+    plt.figure(figsize = (8, 6), dpi = 80)
+    plt.plot(t, a['estimation_y'][2:], linestyle='--', marker='o', label='line with marker')
+    plt.title('estimation_y')   
+
     
     plt.show()
     
-    # plt.figure(figsize = (8, 6), dpi = 80)
-    # plt.plot(a['estimation_x'], a['estimation_y'], '.')
-    # plt.title('estimation')
+
     
     
     
