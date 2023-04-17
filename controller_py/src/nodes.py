@@ -352,6 +352,7 @@ class Node:
         
         error = abs(MIN_dist - self.MIN_dist_prev) / self.MIN_dist_prev
         print("error", error)
+        self.MIN_dist_prev = MIN_dist
         if(error > 0.9 or MIN_dist > 1):
             return [self.odom_x, self.odom_y, self.odom_phi]
         else:
@@ -422,7 +423,7 @@ class Node:
         odo_estimation = self.measurement_Kalman
         
         
-        if (self.t % 1 == 0):
+        if (self.t % 5 == 0):
             if(sr_KALMAN and ~mr_KALMAN):
                 optimal_state_estimate_k, covariance_estimate_k = self.kalman_cam.sr_EKF(cam_measurement, self.estimation, 1)
             elif(mr_KALMAN and ~sr_KALMAN):
@@ -452,9 +453,9 @@ class Node:
             sum_odo = sum(self.odo_error_buffer)
             
             
-                
-            w1 = sum_camera / (sum_camera + sum_odo + 1) 
-            w2 = (sum_odo + 1) / (sum_camera + sum_odo + 1)
+            offs = 0.1    
+            w1 = sum_camera / (sum_camera + sum_odo + offs) 
+            w2 = (sum_odo + offs) / (sum_camera + sum_odo + offs)
             
             # w2 = 0.99
             # w1 = 0.01

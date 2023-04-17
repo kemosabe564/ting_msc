@@ -13,13 +13,13 @@ import pandas as pd
 P = 3
 
 robot_N = 3
-T = 80
+T = 200
 
 if __name__ == "__main__":
 
     robot_history = dict.fromkeys(['0', '1', '2'], dict())
     
-    key_set = ['orien', 'pos_x', 'pos_y', 'estimation_phi', 'estimation_x', 'estimation_y', 'cam_phi', 'cam_x', 'cam_y', 'x', 'y', 'phi', 'P_k_odo', 'P_k_cam']
+    key_set = ['orien', 'pos_x', 'pos_y', 'estimation_phi', 'estimation_x', 'estimation_y', 'cam_phi', 'cam_x', 'cam_y', 'x', 'y', 'phi', 'P_k_odo', 'P_k_cam', 'OWA_w1', 'OWA_w2']
     
     with open('./data/saved_data_t0_RUN1.p', 'rb') as fp:
         if P == 3:
@@ -47,20 +47,13 @@ if __name__ == "__main__":
         else:
             for j in range(robot_N):
                 robot_history[str(j)][i] = copy.deepcopy(b[i][str(j)])
-
-
-    # print(b[0])
-    # print(b[0][str(1)])
-
-    # print(robot_history['0'])
-    # print(robot_history['2'][1])
     
-    t = np.arange(T)
-    
+    t = np.arange(T) * 0.1
+
     # a = pd.DataFrame(robot_history['2']).T
     # print('2')
     # print(a)
-    a = pd.DataFrame(robot_history['2']).T
+    a = pd.DataFrame(robot_history['1']).T
     print('1')
     print(a)
     # a = pd.DataFrame(robot_history['0']).T
@@ -69,19 +62,28 @@ if __name__ == "__main__":
     # print(a['pos_x'])
 
     plt.figure(figsize = (8, 6), dpi = 80)
-    plt.plot(a['pos_x'][2:], a['pos_y'][2:], '.')
+    plt.plot(a['pos_x'][2:], a['pos_y'][2:], linestyle='--', marker='o', color='b', label='line with marker')
     plt.title('odo')
     
     # plt.figure(figsize = (8, 6), dpi = 80)
     # plt.plot(a['x'], a['y'], '.')
     
     plt.figure(figsize = (8, 6), dpi = 80)
-    plt.plot(a['cam_x'][2:], a['cam_y'][2:], '.')
+    plt.plot(a['cam_x'][2:], a['cam_y'][2:], linestyle='--', marker='o', color='b', label='line with marker')
     plt.title('camera')
     
     plt.figure(figsize = (8, 6), dpi = 80)
-    plt.plot(a['estimation_x'][2:], a['estimation_y'][2:], '.')
+    plt.plot(a['estimation_x'][2:], a['estimation_y'][2:], linestyle='--', marker='o', color='b', label='line with marker')
     plt.title('estimation')
+    
+    
+    plt.figure(figsize = (8, 6), dpi = 80)
+    plt.plot(t, a['OWA_w1'][2:], linestyle='--', marker='o', color='b', label='line with marker')
+    plt.title('OWA_w1')
+    
+    plt.figure(figsize = (8, 6), dpi = 80)
+    plt.plot(t, a['OWA_w2'][2:], linestyle='--', marker='o', color='b', label='line with marker')
+    plt.title('OWA_w2')
     
     plt.show()
     

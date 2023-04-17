@@ -52,7 +52,7 @@ if __name__ == "__main__":
         publisher_tag.publish("run")
         robots.store_data(t)
         robots.loop_fuc('move')
-        if(t%2 == 0):
+        if(t%5 == 0):
             robots.reset('theor')
             
         # robots.move('still', step_size= 0.0, theta = 0.)       
