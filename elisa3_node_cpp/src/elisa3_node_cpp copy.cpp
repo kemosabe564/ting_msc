@@ -440,8 +440,8 @@ int main(int argc,char *argv[]) {
         enableObstacleAvoidance(robots_dict[it->first].address);
     }
 
-//    cmdVelSubscriber = n.subscribe("mobile_base/cmd_vel", 10, handlerVelocity);
-    cmdVelSubscriber = n.subscribe("mobile_base/input", 10, handlerVelocity);
+   cmdVelSubscriber = n.subscribe("mobile_base/cmd_vel", 10, handlerVelocity);
+    // cmdVelSubscriber = n.subscribe("mobile_base/input", 10, handlerVelocity);
 
 	//updateRosInfo();
     while (ros::ok()) {

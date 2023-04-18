@@ -62,7 +62,7 @@ class Camera:
         self.cam_phi = optiMsg.theta
         
     def listen_optitrack_timer_callback(self, optiMsg):
-        self.timer = optiMsg.time
+        self.timer = optiMsg.header.stamp.nsecs
         
 class Cameras:
     def __init__(self, N):
@@ -270,8 +270,8 @@ class Node:
             
     
     def states_transform(self, X, v, omega):
-        X[0] = X[0] + v * math.cos(X[2]) / 1000 * 0.1
-        X[1] = X[1] + v * math.sin(X[2]) / 1000 * 0.1
+        X[0] = X[0] + v * math.cos(X[2]) / 1000 * 0.05
+        X[1] = X[1] + v * math.sin(X[2]) / 1000 * 0.05
         X[2] = X[2] + omega
         return X
 
@@ -306,67 +306,55 @@ class Node:
         MIN_dist = 1e5
         cameras.update_camera()
         
-        # print("estimation: ", self.estimation)
-
+        print("est: ", [self.estimation[0], self.estimation[1]])
         i = 0; idx = 0
         for item in cameras.measurement_list:
             dist = math.sqrt((self.estimation[0] - item[0])**2 + (self.estimation[1] - item[1])**2)
-            print("est: ", [self.estimation[0], self.estimation[1]])
-            print('\n')
+            
+            # print('\n')
             print("cam: ", [item[0], item[1]])
-            print('\n')
+            # print('\n')
             print("dist", dist)
-            print("MIN_dist", MIN_dist)
+            # print("MIN_dist", MIN_dist)
             
             if(dist < MIN_dist):
                 MIN_dist = dist
                 idx = i
             i += 1
-
         
-        # dist_odo_cam = math.sqrt((self.odom_x - cameras.measurement_list[idx][0])**2 + (self.odom_y - cameras.measurement_list[idx][1])**2)
-        # print("odom: ", [self.odom_x, self.odom_y])
-        # print("cam: ", [cameras.measurement_list[idx][0], cameras.measurement_list[idx][1]])
-        
-        # print("dist_odo_cam", dist_odo_cam)
-        
-        # if(MIN_dist > 1 or dist_odo_cam > 0.3):
-        
-        
-        self.cam_x = cameras.measurement_list[idx][0]
-        self.cam_y = cameras.measurement_list[idx][1]
-        self.cam_phi = cameras.measurement_list[idx][2]
-        self.cam_timer = cameras.measurement_list[idx][3]
+        self.cam_x = copy.deepcopy(cameras.measurement_list[idx][0])
+        self.cam_y = copy.deepcopy(cameras.measurement_list[idx][1])
+        self.cam_phi = copy.deepcopy(cameras.measurement_list[idx][2])
+        self.cam_timer = copy.deepcopy(cameras.measurement_list[idx][3])
         
         
         if(self.t == 1):
             self.MIN_dist_prev = MIN_dist
             return [self.cam_x, self.cam_y, self.odom_phi]
         
-        print('\n')
+        # print('\n')
         print("camera: ", [self.cam_x, self.cam_y, self.odom_phi])
-        print('\n')
+        # print('\n')
         
         error = abs(MIN_dist - self.MIN_dist_prev) / self.MIN_dist_prev
         print("error", error)
         self.MIN_dist_prev = MIN_dist
-        # if(error > 0.9 or MIN_dist > 1):
-        #     return [self.odom_x, self.odom_y, self.odom_phi]
-        # else:
-        #     self.cam_x = cameras.measurement_list[idx][0]
-        #     self.cam_y = cameras.measurement_list[idx][1]
-        #     self.cam_phi = cameras.measurement_list[idx][2]
-        #     return [self.cam_x, self.cam_y, self.odom_phi]
-        
-        if(MIN_dist < 1 and error < 0.9):
-            return [self.cam_x, self.cam_y, self.odom_phi]
-        else:
-            
-            theta = math.atan2((self.cam_y - self.estimation[1]), (self.cam_x - self.estimation[0]))
-            head = self.heading - theta
-            if(abs(head) < 0.5):
-                return [self.cam_x, self.cam_y, self.odom_phi]
+        if(error > 1 and MIN_dist > 0.3):
             return [self.odom_x, self.odom_y, self.odom_phi]
+        else:
+            # self.cam_x = cameras.measurement_list[idx][0]
+            # self.cam_y = cameras.measurement_list[idx][1]
+            # self.cam_phi = cameras.measurement_list[idx][2]
+            return [self.cam_x, self.cam_y, self.odom_phi]
+        
+        # if(MIN_dist < 1 and error < 0.9):
+        #     return [self.cam_x, self.cam_y, self.odom_phi]
+        # else:
+        #     theta = math.atan2((self.cam_y - self.estimation[1]), (self.cam_x - self.estimation[0]))
+        #     head = self.heading - theta
+        #     if(abs(head) < 0.5):
+        #         return [self.cam_x, self.cam_y, self.odom_phi]
+        #     return [self.odom_x, self.odom_y, self.odom_phi]
         
     def measurement_update(self, cameras):
         
@@ -418,9 +406,9 @@ class Node:
         self.kalman_odo.R_k = np.array([[1.0,   0,    0],
                                      [  0, 1.0,    0],
                                      [  0,    0, 1.0]]) 
-        self.kalman_odo.Q_k = np.array([[0.0001,   0,    0],
-                                     [  0, 0.0001,    0],
-                                     [  0,    0, 0.0001]]) 
+        self.kalman_odo.Q_k = np.array([[0.01,   0,    0],
+                                     [  0, 0.01,    0],
+                                     [  0,    0, 0.01]]) 
         optimal_state_estimate_k, covariance_estimate_k = self.kalman_odo.sr_EKF(odom_measurement, self.estimation, 1)
           
         self.measurement_Kalman = optimal_state_estimate_k
@@ -498,7 +486,6 @@ class Node:
         else:
             step = 0
             omega = 0
-        
         if(self.ternimate() == 0):
             step = 0
             omega = 0
@@ -575,7 +562,7 @@ class Nodes:
         # SEND MOVE MESSAGE
         # rospy.sleep(1)
         self.publisher_auto_motive.publish(self.msg_auto_motive)
-        rospy.sleep(0.1)            
+        rospy.sleep(0.05)            
     
     def test_cam(self):
         self.cameras.update_camera()
@@ -601,7 +588,7 @@ class Nodes:
                 omega = theta
                         
             self.nodes[tag].compute_move(pol = np.array([step, omega])) # \TODO change to move
-        self.print_position_measures()    
+        # self.print_position_measures()    
         # SETUP MESSAGE
         self.msg_auto_motive.data = np.array([len(self.nodes)])
         for tag in self.nodes:

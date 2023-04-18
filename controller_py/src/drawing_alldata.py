@@ -13,13 +13,13 @@ import pandas as pd
 P = 3
 
 robot_N = 3
-T = 10000
+T = 30000
 
 if __name__ == "__main__":
 
     robot_history = dict.fromkeys(['0', '1', '2'], dict())
     
-    key_set = ['orien', 'pos_x', 'pos_y', 'cam_phi', 'cam_x', 'cam_y', 'odom_timer', 'cam_timer']
+    key_set = ['pos_x', 'pos_y', 'orien', 'cam_x', 'cam_phi', 'cam_y', 'odom_timer', 'cam_timer']
     
     with open('./data/all_data_t0_RUN1.p', 'rb') as fp:
         if P == 3:
@@ -27,12 +27,12 @@ if __name__ == "__main__":
         elif P == 2:
             b = pickle.load(fp, encoding='iso-8859-1')
     # print(b)
-    print(b[1][0])
-
+    print(b[1])
+    print(robot_history[str(0)])
     for i in range(T):
-        if(i == 0):
+        if(i == 1):
             for j in range(robot_N):
-                robot_history[str(j)] = copy.deepcopy(b[i][(j)])
+                robot_history[str(j)] = copy.deepcopy(b[i + 1][(j)])
                 robot_history[str(j)][0] = dict.fromkeys(key_set, dict())
                 
                 for k in range(len(key_set)):
@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
         else:
             for j in range(robot_N):
-                robot_history[str(j)][i] = copy.deepcopy(b[i][(j)])
+                robot_history[str(j)][i] = copy.deepcopy(b[i + 1][(j)])
 
 
     # print(b[0])

@@ -37,7 +37,7 @@ class Recorder:
         self.cam_phi = optiMsg.theta
         
     def listen_optitrack_timer_callback(self, optiMsg):
-        self.timer = optiMsg.time
+        self.timer = optiMsg.header.stamp.nsecs
         
     def listen_robot_pose_callback(self, odomMsg):
         self.odom_timer = odomMsg.header.stamp.secs
@@ -105,14 +105,14 @@ if __name__ == "__main__":
     Tag = TAG()
     while(1):
     
-        # print("t: ", t)
+        print("t: ", t)
         t += 1
         recoders.store_data(t)
         rospy.sleep(0.001)
         
         # if (Tag.tag == "stop"):
         #     break
-        if(t > 6e5):
+        if(t > 4e4):
             break
 
     recoders.save_data(0)  
