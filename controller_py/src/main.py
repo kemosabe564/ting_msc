@@ -45,15 +45,15 @@ if __name__ == "__main__":
     last_saved_time = 0
     step_size = 1.0
     theta = 0.0
-    for t in range(last_saved_time, 200):
+    for t in range(last_saved_time, 600):
         print('\n')
         print("t: ", t)
         print('\n')
         publisher_tag.publish("run")
         robots.store_data(t)
         robots.loop_fuc('move')
-        if(t%1 == 0):
-            robots.reset('theor')
+        # if(t%3 == 0):
+        #     robots.reset('theor')
             
         # robots.move('still', step_size= 0.0, theta = 0.)       
         # robots.plot_data(t)

@@ -71,6 +71,11 @@ class Cameras:
         self.measurement_list = np.zeros([N, 4])
         self.measurement_list_prev = np.zeros([N, 4])
         
+        self.msg_cam = Float64MultiArray()
+        
+        self.publisher_cams = rospy.Publisher("elisa3_all_robots/cams", Float64MultiArray,
+                                                     queue_size = 10)
+        
     def update_camera(self):
         self.measurement_list = np.zeros([self.number, 4])
         i = 0
@@ -81,9 +86,21 @@ class Cameras:
             self.measurement_list[i][2] = self.cameras[tag].cam_phi
             self.measurement_list[i][3] = self.cameras[tag].timer
             i += 1
+    
+    def pub(self):
+        self.msg_cam.data = np.array([0])
+        for i in range(self.number):
+            data = [self.measurement_list[i][0], self.measurement_list[i][1], self.measurement_list[i][2]]
+            # print(data)
+            self.msg_cam.data = np.concatenate((self.msg_cam.data, data), axis=0)
+                   
+        self.msg_cam.data[0] = self.number
+        
+        # print(self.msg_cam)
+        self.publisher_cams.publish(self.msg_cam)
             
 class Node:
-    def __init__(self, release_time, range=range, tag=0):
+    def __init__(self, release_time, range = range, tag=0):
         
         self.t = 0
         
@@ -111,6 +128,11 @@ class Node:
         self.odom_phi = self.phi
         self.odom_timer = 0.0
         
+        self.accelx = 0.0
+        self.accely = 0.0
+        self.accelxPos = 0.0
+        self.accelyPos = 0.0
+        
         self.cam_x = self.x
         self.cam_y = self.y
         self.cam_phi = self.phi
@@ -120,6 +142,7 @@ class Node:
         self.MIN_dist_prev = 1
         
         self.theoretical_position = np.array([self.x, self.y, self.phi])
+        self.estimation_prev = np.array([self.x, self.y, self.phi])
         self.estimation = np.array([self.x, self.y, self.phi])
         
         self.kalman_odo = Kalman()
@@ -146,7 +169,7 @@ class Node:
         self.listener_robot_pose = rospy.Subscriber('elisa3_robot_{}/odom'.format(self.tag), Odometry,
                                                     self.listen_robot_pose_callback)
         
-        # self.listener_camera = rospy.Subscriber('Bebop{}/ground_pose'.format(int(self.tag) + 1), Pose2D, self.listen_optitrack_callback)
+        self.listener_accel = rospy.Subscriber('swarm/elisa3_robot_{}/odom'.format(self.tag), Odometry, self.listen_accel_callback)
 
         # Initialize shared update message attributes
         self.update_leds = False
@@ -184,12 +207,11 @@ class Node:
         self.odom_y = float(odomMsg.pose.pose.position.y)
         self.odom_phi = float(odomMsg.pose.pose.position.z)
     
-    # # functions for subscribe callback    
-    # def listen_optitrack_callback(self, optiMsg):
-    #     self.cam_x = optiMsg.x
-    #     self.cam_y = -optiMsg.y
-    #     self.cam_phi = optiMsg.theta
-    #     # print(self.cam_x)
+    def listen_accel_callback(self, accelMsg):
+        self.accelx = accelMsg.linear_acceleration.x
+        self.accely = accelMsg.linear_acceleration.y
+        self.accelxPos = accelMsg.angular_velocity.x
+        self.accelyPos = accelMsg.angular_velocity.y
 
     def print_position_measures(self):
         msg = """ 
@@ -298,17 +320,33 @@ class Node:
             self.moving = 1
             return 1    
     
-    def reset_goal(self):
-        [self.input_v, self.input_omega] = [0.0, 0.0]
-    
     def determine_camera(self, cameras):
         # update the camera
         MIN_dist = 1e5
         cameras.update_camera()
         
+        # listen the topic
+        idx = int(self.tag)
+        self.cam_x = copy.deepcopy(cameras.measurement_list[idx][0])
+        self.cam_y = copy.deepcopy(cameras.measurement_list[idx][1])
+        self.cam_phi = copy.deepcopy(cameras.measurement_list[idx][2])
+        self.cam_timer = copy.deepcopy(cameras.measurement_list[idx][3])
+        
+        dist = math.sqrt((self.estimation[0] - self.cam_x)**2 + (self.estimation[1] - self.cam_y)**2)
+        
+        # whether it's too far?
+        if(dist < 0.25):
+            return [self.cam_x, self.cam_y, self.odom_phi]
+        
+        # the current dist is too far
         print("est: ", [self.estimation[0], self.estimation[1]])
-        i = 0; idx = 0
+        i = 0
+        idx = 0
         for item in cameras.measurement_list:
+            if(i == int(self.tag)):
+                i += 1
+                continue
+            
             dist = math.sqrt((self.estimation[0] - item[0])**2 + (self.estimation[1] - item[1])**2)
             
             # print('\n')
@@ -322,55 +360,44 @@ class Node:
                 idx = i
             i += 1
         
+        
+        
         self.cam_x = copy.deepcopy(cameras.measurement_list[idx][0])
         self.cam_y = copy.deepcopy(cameras.measurement_list[idx][1])
         self.cam_phi = copy.deepcopy(cameras.measurement_list[idx][2])
         self.cam_timer = copy.deepcopy(cameras.measurement_list[idx][3])
         
         
-        if(self.t == 1):
-            self.MIN_dist_prev = MIN_dist
-            return [self.cam_x, self.cam_y, self.odom_phi]
-        
-        # print('\n')
-        print("camera: ", [self.cam_x, self.cam_y, self.odom_phi])
-        # print('\n')
-        
-        error = abs(MIN_dist - self.MIN_dist_prev) / self.MIN_dist_prev
-        print("error", error)
-        self.MIN_dist_prev = MIN_dist
-        if(error > 1 and MIN_dist > 0.3):
+        # if(error > 1 and MIN_dist > 0.3):
+        if(MIN_dist > 0.6):
+            # return [self.estimation[0], self.estimation[1], self.estimation[2]]
+            # return [self.cam_x, self.cam_y, self.odom_phi]
             return [self.odom_x, self.odom_y, self.odom_phi]
         else:
             # self.cam_x = cameras.measurement_list[idx][0]
             # self.cam_y = cameras.measurement_list[idx][1]
             # self.cam_phi = cameras.measurement_list[idx][2]
             return [self.cam_x, self.cam_y, self.odom_phi]
-        
-        # if(MIN_dist < 1 and error < 0.9):
-        #     return [self.cam_x, self.cam_y, self.odom_phi]
-        # else:
-        #     theta = math.atan2((self.cam_y - self.estimation[1]), (self.cam_x - self.estimation[0]))
-        #     head = self.heading - theta
-        #     if(abs(head) < 0.5):
-        #         return [self.cam_x, self.cam_y, self.odom_phi]
-        #     return [self.odom_x, self.odom_y, self.odom_phi]
+
         
     def measurement_update(self, cameras):
         
         # take the measurement from the odom
         odom_measurement = [self.odom_x, self.odom_y, self.odom_phi]        
         
+        accel_measurement = [self.accelx, self.accely, self.odom_phi]
+        
         # take the measurement from the odom
         cam_measurement = self.determine_camera(cameras)
-        [self.cam_x, self.cam_y, self.cam_phi] = cam_measurement
+        # [self.cam_x, self.cam_y, self.cam_phi] = cam_measurement
+        
         # # for test
         # [self.cam_x, self.cam_y, self.odom_phi] = [self.odom_x, self.odom_y, self.odom_phi]   
         # cam_measurement = [self.odom_x, self.odom_y, self.odom_phi]      
         
         self.print_position_measures()
         
-        return [odom_measurement, cam_measurement]
+        return [odom_measurement, cam_measurement, accel_measurement]
             
     def measurement_fusion(self, odom_measurement, cam_measurement):
         if (MODE == "cam"):
@@ -382,14 +409,14 @@ class Node:
                                      [  0,    0, 1.0]]) 
         self.kalman_odo.Q_k = np.array([[0.01,   0,    0],
                                      [  0, 0.01,    0],
-                                     [  0,    0, 0.005]]) 
+                                     [  0,    0, 0.01]]) 
         optimal_state_estimate_k, covariance_estimate_k = self.kalman_odo.sr_EKF(odom_measurement, self.estimation, 1)
           
         self.measurement_Kalman = optimal_state_estimate_k
         self.kalman_odo.P_k_1 = covariance_estimate_k
         self.estimation = self.measurement_Kalman
         
-        if (self.t % 5 == 0):
+        if (self.t % 1 == 0):
             if(sr_KALMAN and ~mr_KALMAN):
                 optimal_state_estimate_k, covariance_estimate_k = self.kalman_cam.sr_EKF(cam_measurement, self.estimation, 1)
             elif(mr_KALMAN and ~sr_KALMAN):
@@ -404,11 +431,11 @@ class Node:
             return 
             
         self.kalman_odo.R_k = np.array([[1.0,   0,    0],
-                                     [  0, 1.0,    0],
-                                     [  0,    0, 1.0]]) 
+                                        [  0, 1.0,    0],
+                                        [  0,    0, 1.0]]) 
         self.kalman_odo.Q_k = np.array([[0.01,   0,    0],
-                                     [  0, 0.01,    0],
-                                     [  0,    0, 0.01]]) 
+                                        [  0, 0.01,    0],
+                                        [  0,    0, 0.01]]) 
         optimal_state_estimate_k, covariance_estimate_k = self.kalman_odo.sr_EKF(odom_measurement, self.estimation, 1)
           
         self.measurement_Kalman = optimal_state_estimate_k
@@ -448,7 +475,7 @@ class Node:
             sum_odo = sum(self.odo_error_buffer)
             
             
-            offs = 0.1    
+            offs = 0.01
             w1 = sum_camera / (sum_camera + sum_odo + offs) 
             w2 = (sum_odo + offs) / (sum_camera + sum_odo + offs)
             
@@ -472,9 +499,11 @@ class Node:
         self.t += 1
         
         # 1. take measurement from odom and cam odom_measurement and cam_measurement via sub
-        [odom_measurement, cam_measurement] = self.measurement_update(cameras)
+        [odom_measurement, cam_measurement, accel_measurement] = self.measurement_update(cameras)
         
         # 2. estimated the position
+        self.estimation = self.states_transform(self.estimation, self.input_v, self.input_omega)
+        
         self.measurement_fusion_OWA(odom_measurement, cam_measurement)
         # self.estimation = [self.cam_x, self.cam_y, self.cam_phi]
         
@@ -498,7 +527,6 @@ class Node:
         self.compute_move(pol = np.array([step, omega]))
         
         # self.theoretical_position = self.states_transform(self.theoretical_position, step, omega)
-        self.estimation = self.states_transform(self.estimation, step, omega)
         
                                
 class Nodes:
@@ -516,17 +544,17 @@ class Nodes:
 
         
         self.publisher_auto_motive = rospy.Publisher("elisa3_all_robots/auto_motive", Float64MultiArray,
-                                                     queue_size=10)
+                                                     queue_size=1)
         self.publisher_leds = rospy.Publisher("elisa3_all_robots/leds", Float64MultiArray,
-                                                     queue_size=10)
+                                                     queue_size=1)
         self.publisher_reset = rospy.Publisher("elisa3_all_robots/reset", Float64MultiArray,
-                                              queue_size=10)
+                                              queue_size=1)
         
         self.publisher_input = rospy.Publisher("mobile_base/input", Twist,
-                                              queue_size=10)
+                                              queue_size=1)
         
         self.publisher_inputs = rospy.Publisher("mobile_base/inputs", Twist,
-                                              queue_size=10)
+                                              queue_size=1)
         
         self.msg_input = Twist()
         self.msg_inputs = Float64MultiArray()
@@ -680,7 +708,9 @@ class Nodes:
                                        'odom_timer': copy.deepcopy(self.nodes[tag].odom_timer),
                                        'cam_timer': copy.deepcopy(self.nodes[tag].cam_timer),
                                        'OWA_w1': copy.deepcopy(self.nodes[tag].OWA_w1),
-                                       'OWA_w2': copy.deepcopy(self.nodes[tag].OWA_w2)
+                                       'OWA_w2': copy.deepcopy(self.nodes[tag].OWA_w2),
+                                       'accelxPos': copy.deepcopy(self.nodes[tag].accelxPos),
+                                       'accelyPos': copy.deepcopy(self.nodes[tag].accelyPos)
                                        }
         # self.ax[ :-1] = self.ax[ 1:]
         # self.ay[ :-1] = self.ay[ 1:]

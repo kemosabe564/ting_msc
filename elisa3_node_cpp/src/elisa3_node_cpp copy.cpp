@@ -169,10 +169,10 @@ void Robot::updateRosInfo() {
 	}
 	xPos += deltaXCorr/1000.0;	// Expressed in meters.
 	yPos += deltaYCorr/1000.0;	// Expressed in meters.
-	if(tag == 1){
-        std::cout << "[" << nodeName << "] " << "robIdx:: " << tag << ", xPos:: " << xPos << ", yPos:: " << yPos << std::endl;
-        std::cout << "robXPos:: " << robXPos << ", robYPos:: " << robYPos << std::endl;
-	}
+	// if(tag == 1){
+    //     std::cout << "[" << nodeName << "] " << "robIdx:: " << tag << ", xPos:: " << xPos << ", yPos:: " << yPos << std::endl;
+    //     std::cout << "robXPos:: " << robXPos << ", robYPos:: " << robYPos << std::endl;
+	// }
 //	std::cout << "xPos" << ":: " << xPos << std::endl;
 //	std::cout << "yPos" << ":: " << yPos << std::endl;
 

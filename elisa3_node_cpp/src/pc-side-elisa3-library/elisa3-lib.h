@@ -55,9 +55,10 @@ void setLeftSpeedForAll(char *value);
  */
 void setRightSpeedForAll(char *value);
 
-
+// SELF-MADE
 void setAllColors(int robotAddr, char red, char green, char blue);
-
+void setXpos(int robotAddr, int value);
+void setYpos(int robotAddr, int value);
 /**
  * \brief Set the red intensity of the RGB led on the robot.
  * \param robotAddr the address of the robot for which to change the packet.

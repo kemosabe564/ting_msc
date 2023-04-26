@@ -79,6 +79,10 @@
 int robotAddress[100];
 char leftSpeed[100];
 char rightSpeed[100];
+
+signed int xPos[100];
+signed int yPos[100];
+
 char redLed[100], greenLed[100], blueLed[100];
 unsigned int proxValue[100][8];
 unsigned int proxAmbientValue[100][8];
@@ -345,6 +349,34 @@ void setAllColors(int robotAddr, char red, char green, char blue) {
     }
 }
 
+void setXpos(int robotAddr, int value) {
+    int id = getIdFromAddress(robotAddr);
+    unsigned char enableMut = checkConcurrency(id);
+    if(id>=0) {
+        if(enableMut) {
+            setMutexTx();
+        }
+        xPos[id] = value;
+
+        if(enableMut) {
+            freeMutexTx();
+        }
+    }
+}
+
+void setYpos(int robotAddr, int value) {
+    int id = getIdFromAddress(robotAddr);
+    unsigned char enableMut = checkConcurrency(id);
+    if(id>=0) {
+        if(enableMut) {
+            setMutexTx();
+        }
+        yPos[id] = value;
+        if(enableMut) {
+            freeMutexTx();
+        }
+    }
+}
 
 void setRed(int robotAddr, unsigned char value) {
     int id = getIdFromAddress(robotAddr);

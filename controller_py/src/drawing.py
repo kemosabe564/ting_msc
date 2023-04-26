@@ -13,7 +13,7 @@ import pandas as pd
 P = 3
 
 robot_N = 3
-T = 200
+T = 500
 
 if __name__ == "__main__":
 
@@ -61,6 +61,8 @@ if __name__ == "__main__":
         plt.plot(a['estimation_x'][2:], a['estimation_y'][2:], linestyle='--', marker='o', label='line with marker')
     plt.title('odo')
     
+    
+    
     a = pd.DataFrame(robot_history['0']).T
     print('1')
     print(a)
@@ -93,13 +95,21 @@ if __name__ == "__main__":
     plt.plot(t, a['OWA_w2'][2:], linestyle='--', marker='o', label='line with marker')
     plt.title('OWA_w2')
 
-    plt.figure(figsize = (8, 6), dpi = 80)
-    plt.plot(t, a['estimation_x'][2:], linestyle='--', marker='o', label='line with marker')
-    plt.title('cam_x')
+    # plt.figure(figsize = (8, 6), dpi = 80)
+    # plt.plot(t, a['estimation_x'][2:], linestyle='--', marker='o', label='line with marker')
+    # plt.title('cam_x')
+    
+    # plt.figure(figsize = (8, 6), dpi = 80)
+    # plt.plot(t, a['estimation_y'][2:], linestyle='--', marker='o', label='line with marker')
+    # plt.title('cam_y')  
     
     plt.figure(figsize = (8, 6), dpi = 80)
-    plt.plot(t, a['estimation_y'][2:], linestyle='--', marker='o', label='line with marker')
-    plt.title('cam_y')   
+    plt.plot(a['pos_x'][2:], a['pos_y'][2:], linestyle='--', marker='o', label='line with marker')
+    plt.plot(a['cam_x'][2:], a['cam_y'][2:], linestyle='--', marker='o', label='line with marker')
+    plt.plot(a['estimation_x'][2:], a['estimation_y'][2:], linestyle='--', marker='o', label='line with marker')
+    plt.title('cam_x')
+    plt.legend(['odom', 'cam', 'est'])
+  
 
     
     plt.show()
