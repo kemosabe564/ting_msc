@@ -151,6 +151,8 @@ class Robot{
 	double xPosCorr, yPosCorr;
 	double robDistTraveled, robDistTraveledPrev, robDeltaDistTraveled;
 
+    double accx_raw_measure = 0, accx_raw_measure_prev = 0, accx_filtered_prev = 0, accx_filtered = 0;
+
 	int trigger_delay = 0;
     signed int accData[3];
 	double x_target, y_target;
@@ -169,6 +171,9 @@ class Robot{
     void updateSensorData();
 	void updateRosInfo();
 
+
+    void IIR_filter();
+
 	bool reset = false;
 };
 
@@ -185,6 +190,9 @@ void Robot::updateSensorData() {
     accData[0] = getAccX(address);
     accData[1] = getAccY(address);
     accData[2] = getAccZ(address);
+
+    accx_raw_measure = accData[0];
+    
     // std::cout << "[" << nodeName << "] " << "accData[0]: " << accData[0] << std::endl;
 //    getAllProximity(address, proxData);
 }
@@ -235,14 +243,20 @@ void Robot::updateRosInfo() {
 
 
     // accel info
+
+    // low-pass filter first
+    IIR_filter();
+
     std::stringstream ss3;
     ss3 << "elisa3_robot_" << "/base_link";
     accelMsg.header.frame_id = ss3.str();
-    accelMsg.header.stamp = ros::Time::now();    
+    accelMsg.header.stamp = ros::Time::now();   
+
+    
     // time_prev = ros::Time::now();     
-    accelMsg.linear_acceleration.x = (accData[0])/64.0*9.81* 0.001; // 1 g = 64, then transforms in m/s^2.
-    accelMsg.linear_acceleration.y = (accData[1])/64.0*9.81* 0.001;
-    accelMsg.linear_acceleration.z = (accData[2])/64.0*9.81* 0.001;
+    accelMsg.linear_acceleration.x = (accx_filtered)/64.0*9.81; // 1 g = 64, then transforms in m/s^2.
+    accelMsg.linear_acceleration.y = (accData[1])/64.0*9.81;
+    accelMsg.linear_acceleration.z = (accData[2])/64.0*9.81;
     accelMsg.linear_acceleration_covariance[0] = 0.01;
     accelMsg.linear_acceleration_covariance[1] = 0.0;
     accelMsg.linear_acceleration_covariance[2] = 0.0;
@@ -253,8 +267,8 @@ void Robot::updateRosInfo() {
     accelMsg.linear_acceleration_covariance[7] = 0.0;
     accelMsg.linear_acceleration_covariance[8] = 0.01;
 
-    accelMsg.angular_velocity.x += (accData[0])/64.0*9.81* 0.001 * 0.001;
-    accelMsg.angular_velocity.y += (accData[1])/64.0*9.81* 0.001 * 0.001;
+    accelMsg.angular_velocity.x = (accData[0])/64.0*9.81;
+    accelMsg.angular_velocity.y = (accData[1])/64.0*9.81;
     accelMsg.angular_velocity.z = 0;
     accelMsg.angular_velocity_covariance[0] = 0.01;
     accelMsg.angular_velocity_covariance[1] = 0.0;
@@ -278,6 +292,20 @@ void Robot::updateRosInfo() {
     accelMsg.orientation_covariance[8] = 0.01;
     accelPublisher[tag].publish(accelMsg);
 }
+
+void Robot::IIR_filter(){
+    
+    // C2 * y(n) = (c1 * y(n-1) + x(n) + x(n-1))
+    int c1 = 15, c2 = 17;
+
+    accx_filtered = c1 * accx_filtered_prev + accx_raw_measure + accx_raw_measure_prev;
+    accx_filtered = accx_filtered / c2;
+
+    accx_filtered_prev = accx_filtered;
+    accx_raw_measure_prev = accx_raw_measure;
+
+}
+
 
 void updateSensorsData() {
 	std::map<int, Robot>::iterator it;
@@ -487,7 +515,12 @@ void updateActuators() {
             robots_dict[it->first].changedActuators[GREEN_LEDS_RESET] = false;
             setGreen(robots_dict[it->first].address, robots_dict[it->first].greenLed_reset);
         }
+
+        // setLeftSpeed(robots_dict[it->first].address, 15);
+        // setRightSpeed(robots_dict[it->first].address, 15);
 	}
+
+
 
 }
 
@@ -505,19 +538,21 @@ void main_fuc(std::map<int, Robot> robots_dict, std::map<int, Camera> cameras_di
     
     std::map<int, Robot>::iterator it;
     for (it = robots_dict.begin(); it != robots_dict.end(); it++){
-        // std::cout << "[" << nodeName << "] " << "accData[0]: " << robots_dict[it->first].accData[0] << std::endl;
+        std::cout << "[" << nodeName << "] " << "accData[0]: " << robots_dict[it->first].accData[0] << std::endl;
         // std::cout << robots_dict[it->first].xPos << std::endl;
 
         // for each robot
-        robots_dict[it->first].timer += 1;
-        robots_dict[it->first].xPosc += robots_dict[it->first].accData[0]/64.0*9.81 * 0.001;
-        robots_dict[it->first].yPosc += robots_dict[it->first].accData[1]/64.0*9.81 * 0.001;
-        if(robots_dict[it->first].tag == 0){
-            std::cout << "[" << nodeName << "] " << "accData[0]: " << robots_dict[it->first].xPosc << std::endl;
-        }
+        // robots_dict[it->first].timer += 1;
+        // robots_dict[it->first].xPosc += robots_dict[it->first].accData[0]/64.0*9.81 * 0.001;
+        // robots_dict[it->first].yPosc += robots_dict[it->first].accData[1]/64.0*9.81 * 0.001;
+        // // if(robots_dict[it->first].tag == 0){
+        // //     std::cout << "[" << nodeName << "] " << "accData[0]: " << robots_dict[it->first].xPosc << std::endl;
+        // // }
+        // std::cout << "[" << nodeName << "] " << "accData[0]: " << robots_dict[it->first].xPosc << std::endl;
+        // if(robots_dict[it->first].tag == 1){
+        //     std::cout << ros::Time::now() << std::endl;
+        // }
         
-
-
 
         // 1.take the measurement from the odom and cam
 

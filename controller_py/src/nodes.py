@@ -17,6 +17,8 @@ from Kalman import *
 from std_msgs.msg import Float64MultiArray
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
+from sensor_msgs.msg import Imu
+
 
 # for optitrack camera
 from geometry_msgs.msg import Pose2D
@@ -27,6 +29,8 @@ wheel_distance = 0.041
 t_delay = 0.5
 std_vlt_trans = 20
 std_vlt_rot = 10
+
+sampling_time = 0.05
 
 PI = math.pi
 
@@ -76,17 +80,23 @@ class Cameras:
         self.publisher_cams = rospy.Publisher("elisa3_all_robots/cams", Float64MultiArray,
                                                      queue_size = 10)
         
+
+        
     def update_camera(self):
         self.measurement_list = np.zeros([self.number, 4])
         i = 0
         for tag in self.cameras:
             # x axis
+            
+            
             self.measurement_list[i][0] = 2 + self.cameras[tag].cam_y
             self.measurement_list[i][1] = 1 + self.cameras[tag].cam_x
             self.measurement_list[i][2] = self.cameras[tag].cam_phi
             self.measurement_list[i][3] = self.cameras[tag].timer
             i += 1
-    
+
+        
+        
     def pub(self):
         self.msg_cam.data = np.array([0])
         for i in range(self.number):
@@ -129,9 +139,10 @@ class Node:
         self.odom_timer = 0.0
         
         self.accelx = 0.0
+        self.accelx_lowpass = 0.0
         self.accely = 0.0
-        self.accelxPos = 0.0
-        self.accelyPos = 0.0
+        self.accelxPos = self.x
+        self.accelyPos = self.y
         
         self.cam_x = self.x
         self.cam_y = self.y
@@ -147,6 +158,9 @@ class Node:
         
         self.kalman_odo = Kalman()
         self.kalman_cam = Kalman()
+        self.kalman_acc = Kalman()
+        
+        self.Threshold = 0.02
         
         # buffer
         self.buffer_size = 5
@@ -154,9 +168,11 @@ class Node:
 
         self.odo_error_buffer = [0.1] * self.buffer_size
         self.camera_error_buffer = [0.1] * self.buffer_size
+        self.acc_error_buffer = [0.1] * self.buffer_size
         
         self.OWA_w1 = 0.0
         self.OWA_w2 = 0.0
+        self.OWA_w3 = 0.0
         
         self.goalX = np.array([0.0, 0.5])
         self.setup = {"vmax":0.5, "gtg_scaling":0.0001, "K_p":0.01, "ao_scaling":0.00005}
@@ -169,7 +185,7 @@ class Node:
         self.listener_robot_pose = rospy.Subscriber('elisa3_robot_{}/odom'.format(self.tag), Odometry,
                                                     self.listen_robot_pose_callback)
         
-        self.listener_accel = rospy.Subscriber('swarm/elisa3_robot_{}/odom'.format(self.tag), Odometry, self.listen_accel_callback)
+        self.listener_accel = rospy.Subscriber('swarm/elisa3_robot_{}/accel'.format(self.tag), Imu, self.listen_accel_callback)
 
         # Initialize shared update message attributes
         self.update_leds = False
@@ -208,26 +224,26 @@ class Node:
         self.odom_phi = float(odomMsg.pose.pose.position.z)
     
     def listen_accel_callback(self, accelMsg):
+        self.accelx_lowpass = accelMsg.angular_velocity.x
         self.accelx = accelMsg.linear_acceleration.x
         self.accely = accelMsg.linear_acceleration.y
-        self.accelxPos = accelMsg.angular_velocity.x
-        self.accelyPos = accelMsg.angular_velocity.y
+        # self.accelxPos = accelMsg.angular_velocity.x
+        # self.accelyPos = accelMsg.angular_velocity.y
 
     def print_position_measures(self):
         msg = """ 
                 ID: {}
-                Estimation: 
-                position: {} - orientation: {}
-                Odom Measure: 
-                position: {} - orientation: {}
-                Cam Measure: 
-                position: {} - orientation: {}
-                  """.format(self.tag,
+                Estimation: position: {} - orientation: {}
+                Odom: position: {} - orientation: {}
+                Cam: position: {} - orientation: {}
+                Accel: position: {}, velocity: {}
+                """.format(self.tag,
                             #  self.pos[-1], self.orien[-1],
                             #  self.robot_meas_pose, self.robot_meas_orien)
                             [self.estimation[0], self.estimation[1]], self.estimation[2],
                             [self.odom_x, self.odom_y], self.odom_phi,
-                            [self.cam_x, self.cam_y], self.cam_phi)
+                            [self.cam_x, self.cam_y], self.cam_phi,
+                            [self.accelxPos, self.accelyPos], self.accelx)
         # if(self.tag == '0'):            
         #     print("msg: ", msg)
         print("msg: ", msg)
@@ -292,8 +308,8 @@ class Node:
             
     
     def states_transform(self, X, v, omega):
-        X[0] = X[0] + v * math.cos(X[2]) / 1000 * 0.05
-        X[1] = X[1] + v * math.sin(X[2]) / 1000 * 0.05
+        X[0] = X[0] + v * math.cos(X[2]) / 1000 * sampling_time
+        X[1] = X[1] + v * math.sin(X[2]) / 1000 * sampling_time
         X[2] = X[2] + omega
         return X
 
@@ -335,7 +351,7 @@ class Node:
         dist = math.sqrt((self.estimation[0] - self.cam_x)**2 + (self.estimation[1] - self.cam_y)**2)
         
         # whether it's too far?
-        if(dist < 0.25):
+        if(dist < 0.05):
             return [self.cam_x, self.cam_y, self.odom_phi]
         
         # the current dist is too far
@@ -369,7 +385,8 @@ class Node:
         
         
         # if(error > 1 and MIN_dist > 0.3):
-        if(MIN_dist > 0.6):
+        if(MIN_dist > self.Threshold):
+            self.Threshold = 0.05
             # return [self.estimation[0], self.estimation[1], self.estimation[2]]
             # return [self.cam_x, self.cam_y, self.odom_phi]
             return [self.odom_x, self.odom_y, self.odom_phi]
@@ -377,6 +394,7 @@ class Node:
             # self.cam_x = cameras.measurement_list[idx][0]
             # self.cam_y = cameras.measurement_list[idx][1]
             # self.cam_phi = cameras.measurement_list[idx][2]
+            self.Threshold = 0.05
             return [self.cam_x, self.cam_y, self.odom_phi]
 
         
@@ -385,25 +403,29 @@ class Node:
         # take the measurement from the odom
         odom_measurement = [self.odom_x, self.odom_y, self.odom_phi]        
         
-        accel_measurement = [self.accelx, self.accely, self.odom_phi]
         
-        # take the measurement from the odom
+        
+        # take the measurement from the accel        
+        self.accelxPos = self.accelxPos + self.accelx * math.cos(self.odom_phi) * sampling_time
+        self.accelyPos = self.accelyPos + self.accelx * math.sin(self.odom_phi) * sampling_time
+        
+        accel_measurement = [self.accelxPos, self.accelyPos, self.odom_phi]
+        # print(-1000 * self.accelx)
+        
+        # take the measurement from the cam
         cam_measurement = self.determine_camera(cameras)
-        # [self.cam_x, self.cam_y, self.cam_phi] = cam_measurement
         
-        # # for test
-        # [self.cam_x, self.cam_y, self.odom_phi] = [self.odom_x, self.odom_y, self.odom_phi]   
-        # cam_measurement = [self.odom_x, self.odom_y, self.odom_phi]      
+        # cam_measurement = accel_measurement           
         
         self.print_position_measures()
         
         return [odom_measurement, cam_measurement, accel_measurement]
             
-    def measurement_fusion(self, odom_measurement, cam_measurement):
+    def measurement_fusion(self, odom_measurement, accel_measurement, cam_measurement):
         if (MODE == "cam"):
             self.estimation = cam_measurement
             return 
-        
+        # fuse with odo
         self.kalman_odo.R_k = np.array([[1.0,   0,    0],
                                      [  0, 1.0,    0],
                                      [  0,    0, 1.0]]) 
@@ -416,6 +438,21 @@ class Node:
         self.kalman_odo.P_k_1 = covariance_estimate_k
         self.estimation = self.measurement_Kalman
         
+        # fuse with accel
+        
+        self.kalman_acc.R_k = np.array([[0.5,   0,    0],
+                                        [  0, 0.5,    0],
+                                        [  0,    0, 0.5]]) 
+        self.kalman_acc.Q_k = np.array([[0.01,   0,    0],
+                                        [  0, 0.01,    0],
+                                        [  0,    0, 0.01]]) 
+        optimal_state_estimate_k, covariance_estimate_k = self.kalman_acc.sr_EKF(accel_measurement, self.estimation, 1)
+          
+        self.measurement_Kalman = optimal_state_estimate_k
+        self.kalman_acc.P_k_1 = covariance_estimate_k
+        self.estimation = self.measurement_Kalman
+        
+        
         if (self.t % 1 == 0):
             if(sr_KALMAN and ~mr_KALMAN):
                 optimal_state_estimate_k, covariance_estimate_k = self.kalman_cam.sr_EKF(cam_measurement, self.estimation, 1)
@@ -425,10 +462,12 @@ class Node:
             self.kalman_cam.P_k_1 = covariance_estimate_k
             self.estimation = self.measurement_Kalman
             
-    def measurement_fusion_OWA(self, odom_measurement, cam_measurement):
+    def measurement_fusion_OWA(self, odom_measurement, accel_measuremrnt, cam_measurement):
         if (MODE == "cam"):
             self.estimation = cam_measurement
             return 
+        
+        # fuse with odo
             
         self.kalman_odo.R_k = np.array([[1.0,   0,    0],
                                         [  0, 1.0,    0],
@@ -440,10 +479,28 @@ class Node:
           
         self.measurement_Kalman = optimal_state_estimate_k
         self.kalman_odo.P_k_1 = covariance_estimate_k
-        self.estimation = self.measurement_Kalman
+        # self.estimation = self.measurement_Kalman
         
         odo_estimation = self.measurement_Kalman
         
+        
+        # fuse with accel
+        
+        self.kalman_acc.R_k = np.array([[0.5,   0,    0],
+                                        [  0, 0.5,    0],
+                                        [  0,    0, 0.5]]) 
+        self.kalman_acc.Q_k = np.array([[0.01,   0,    0],
+                                        [  0, 0.01,    0],
+                                        [  0,    0, 0.01]]) 
+        optimal_state_estimate_k, covariance_estimate_k = self.kalman_acc.sr_EKF(accel_measuremrnt, self.estimation, 1)
+          
+        self.measurement_Kalman = optimal_state_estimate_k
+        self.kalman_acc.P_k_1 = covariance_estimate_k
+        # self.estimation = self.measurement_Kalman
+        
+        acc_estimation = self.measurement_Kalman
+        
+        # fuse with cam
         
         if (self.t % 1 == 0):
             if(sr_KALMAN and ~mr_KALMAN):
@@ -460,27 +517,40 @@ class Node:
             
             err_camera = ((self.estimation[0] - self.cam_x)**2 + (self.estimation[1] - self.cam_y)**2)
             err_odo = ((self.estimation[0] - self.odom_x)**2 + (self.estimation[1] - self.odom_y)**2)
-            
+            err_acc = ((self.estimation[0] - self.accelxPos)**2 + (self.estimation[1] - self.accelyPos)**2)
             
             self.camera_error_buffer.append(err_camera)
             self.camera_error_buffer.pop(0)
-
             
             self.odo_error_buffer.append(err_odo)
             self.odo_error_buffer.pop(0)
             
+            self.acc_error_buffer.append(err_acc)
+            self.acc_error_buffer.pop(0)
             
             
             sum_camera = sum(self.camera_error_buffer)
             sum_odo = sum(self.odo_error_buffer)
+            sum_acc = sum(self.acc_error_buffer)
             
             
-            offs = 0.01
+            offs = 0.00
+            # sum1 = sum_camera + sum_odo + sum_acc
+            # temp_cam = sum1 / sum_camera
+            # temp_odo = sum1 / sum_odo
+            # temp_acc = sum1 / sum_acc
+            
+            # w1 = (temp_odo) / (temp_odo + temp_cam + temp_acc + offs) 
+            # w2 = (temp_cam + offs) / (temp_odo + temp_cam + temp_acc + offs) 
+            # w3 = (temp_acc) / (temp_odo + temp_cam + temp_acc + offs) 
+            
             w1 = sum_camera / (sum_camera + sum_odo + offs) 
             w2 = (sum_odo + offs) / (sum_camera + sum_odo + offs)
+            w3 = sum_camera / (sum_camera + sum_odo + sum_camera + offs) 
             
-            # w2 = 0.99
-            # w1 = 0.01
+            
+            # w2 = 0.5
+            # w1 = 0.5
             
             # if(sum_camera > 30 * self.buffer_size):
             #     w1 = 0.9
@@ -489,10 +559,10 @@ class Node:
             
             self.OWA_w1 = w1
             self.OWA_w2 = w2
+            self.OWA_W3 = w3
             
-            self.estimation = w2 * cam_estimation + w1 * odo_estimation  
-        
-    
+            self.estimation = w1 * odo_estimation + w2 * cam_estimation + w3 * acc_estimation
+            
     def loop_fuc(self, cameras, move_type):
         
         # update the timer
@@ -504,21 +574,22 @@ class Node:
         # 2. estimated the position
         self.estimation = self.states_transform(self.estimation, self.input_v, self.input_omega)
         
-        self.measurement_fusion_OWA(odom_measurement, cam_measurement)
+        self.measurement_fusion(odom_measurement, accel_measurement, cam_measurement)
         # self.estimation = [self.cam_x, self.cam_y, self.cam_phi]
         
         # 3. decide where to go based on self.estimation
         # could add a logic to let robor decide where to go 
-        if(move_type == 'move'):     
-            [step, omega] = self.go_to_goal()
-            [step, omega] = [1.5, 0]
-        else:
-            step = 0
-            omega = 0
-        if(self.ternimate() == 0):
-            step = 0
-            omega = 0
-            
+        # if(move_type == 'move'):     
+        #     [step, omega] = self.go_to_goal()
+        #     [step, omega] = [1.5, 0]
+        # else:
+        #     step = 0
+        #     omega = 0
+        # if(self.ternimate() == 0):
+        #     step = 0
+        #     omega = 0
+        
+        [step, omega] = [1.5, 0]    
         self.input_v = step
         self.input_omega = omega
         
@@ -590,7 +661,7 @@ class Nodes:
         # SEND MOVE MESSAGE
         # rospy.sleep(1)
         self.publisher_auto_motive.publish(self.msg_auto_motive)
-        rospy.sleep(0.05)            
+        rospy.sleep(sampling_time)            
     
     def test_cam(self):
         self.cameras.update_camera()
@@ -624,7 +695,7 @@ class Nodes:
                     np.array([int(self.nodes[tag].address)]), self.nodes[tag].msg_auto_motive), axis=0)
 
         # SEND MOVE MESSAGE
-        rospy.sleep(0.05)
+        rospy.sleep(sampling_time)
         self.publisher_auto_motive.publish(self.msg_auto_motive)
         # rospy.sleep(10)
 
@@ -709,6 +780,9 @@ class Nodes:
                                        'cam_timer': copy.deepcopy(self.nodes[tag].cam_timer),
                                        'OWA_w1': copy.deepcopy(self.nodes[tag].OWA_w1),
                                        'OWA_w2': copy.deepcopy(self.nodes[tag].OWA_w2),
+                                       'OWA_w3': copy.deepcopy(self.nodes[tag].OWA_w3),
+                                       'accelx': copy.deepcopy(self.nodes[tag].accelx),
+                                       'accelx_lowpass': copy.deepcopy(self.nodes[tag].accelx_lowpass),
                                        'accelxPos': copy.deepcopy(self.nodes[tag].accelxPos),
                                        'accelyPos': copy.deepcopy(self.nodes[tag].accelyPos)
                                        }
@@ -719,7 +793,7 @@ class Nodes:
         # self.ay[-1] = self.nodes['0'].estimation[1]
 
     def save_data(self, t):
-        with open('./data/saved_data_t{}_RUN{}.p'.format(t, 1),'wb') as fp:
+        with open('./data/saved_data_t0_RUN_test_cas.p','wb') as fp:
             pickle.dump(self.saved_data, fp, protocol=pickle.HIGHEST_PROTOCOL)
 
     # def plot_data(self, t):
