@@ -79,7 +79,9 @@ void processMocapData( const char** mocap_model,
 
               if (item != published_rigid_bodies.end())
               {
-                  item->second.publish(format.model.rigidBodies[i]);
+                  item->second.publish(format.model.rigidBodies[i], format.model);
+
+                  // item->second.publish_maker(format.model.markerSets[i]);
               }
             }
           }

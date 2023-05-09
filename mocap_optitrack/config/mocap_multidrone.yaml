@@ -5,16 +5,19 @@
         
 rigid_bodies:
     '1':
+        maker: Bebop1/makers
         pose: Bebop1/pose
         pose2d: Bebop1/ground_pose
         child_frame_id: Bebop1/base_link
         parent_frame_id: world
     '2':
+        maker: Bebop2/makers
         pose: Bebop2/pose
         pose2d: Bebop2/ground_pose
         child_frame_id: Bebop2/base_link
         parent_frame_id: world
     '3':
+        maker: Bebop3/makers
         pose: Bebop3/pose
         pose2d: Bebop3/ground_pose
         child_frame_id: Bebop3/base_link
