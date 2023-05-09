@@ -143,18 +143,18 @@ void PublishedRigidBody::publish(RigidBody &body, ModelFrame &markerset)
     // it would be also possible to publish the makerset (one object)
     // msg_name = markerset.markers[i].positionX;
 
-    std_msgs::Float64MultiArray msg1;
+    std_msgs::Float64MultiArray maker_msg;
 
-    msg1.data.push_back(markerset.numOtherMarkers);
-    msg1.data.push_back(3 * markerset.numOtherMarkers);
-    for (int i = 0; i < markerset.numMarkerSets-1; i++)
+    maker_msg.data.push_back(markerset.numOtherMarkers);
+    maker_msg.data.push_back(3 * markerset.numOtherMarkers);
+    for (int i = 0; i < markerset.numOtherMarkers; i++)
     {
-      msg1.data.push_back(markerset.otherMarkers[i].positionX);
-      msg1.data.push_back(markerset.otherMarkers[i].positionY);
-      msg1.data.push_back(markerset.otherMarkers[i].positionZ);
+      maker_msg.data.push_back(markerset.otherMarkers[i].positionX);
+      maker_msg.data.push_back(markerset.otherMarkers[i].positionY);
+      maker_msg.data.push_back(markerset.otherMarkers[i].positionZ);
     }
 
-    makers_pub.publish(msg1);
+    makers_pub.publish(maker_msg);
   }
   
 
