@@ -2,8 +2,8 @@
 # Identifier corresponds to Trackable ID set in Tracking Tools
 #
 
-# (x, y) = (2 - z0, 1 + x0)
-
+# initialize robot using the position from Motive(Optitrack)
+# (x, y) = (x0, z0)
 
 rigid_bodies:
     # '0':
