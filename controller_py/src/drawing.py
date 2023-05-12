@@ -13,7 +13,7 @@ import pandas as pd
 P = 3
 
 robot_N = 3
-T = 500
+T = 300
 
 offs = 3
 
@@ -61,7 +61,16 @@ if __name__ == "__main__":
         a = pd.DataFrame(robot_history[str(i)]).T
     
         plt.plot(a['estimation_x'][offs:], a['estimation_y'][offs:], linestyle='--', marker='o', label='line with marker')
-    plt.title('all robots')
+    
+        
+    plt.legend(['Robot 1', 'Robot 2', 'Robot 3'])
+    plt.xlabel("x position/m")
+    plt.ylabel("y position/m")
+    for i in range(robot_N):
+        a = pd.DataFrame(robot_history[str(i)]).T
+        plt.plot(a['estimation_x'][offs], a['estimation_y'][offs], marker = "x", markeredgecolor = 'red', markersize=12, markeredgewidth = 4)
+        plt.plot(a['estimation_x'][T-1], a['estimation_y'][T-1], marker = "x", markeredgecolor = 'blue', markersize=12, markeredgewidth = 4)
+    plt.title('Robots Tracking Result')
     
     
     
@@ -74,18 +83,15 @@ if __name__ == "__main__":
 
     plt.figure(figsize = (8, 6), dpi = 80)
     plt.plot(a['pos_x'][offs:], a['pos_y'][offs:], linestyle='--', marker='o', label='line with marker')
-    plt.title('odo')
-    
-    # plt.figure(figsize = (8, 6), dpi = 80)
-    # plt.plot(a['x'], a['y'], '.')
+    plt.title('Odometry')
     
     plt.figure(figsize = (8, 6), dpi = 80)
     plt.plot(a['cam_x'][offs:], a['cam_y'][offs:], linestyle='--', marker='o', label='line with marker')
-    plt.title('camera')
+    plt.title('Camera')
     
     plt.figure(figsize = (8, 6), dpi = 80)
     plt.plot(a['estimation_x'][offs:], a['estimation_y'][offs:], linestyle='--', marker='o', label='line with marker')
-    plt.title('estimation')
+    plt.title('Estimation')
     
     
     plt.figure(figsize = (8, 6), dpi = 80)
@@ -105,24 +111,7 @@ if __name__ == "__main__":
     plt.plot(a['accelxPos'][offs:], a['accelyPos'][offs:], linestyle='--', marker='o', label='line with marker')
     plt.title('accel')
     
-    
-    
-    
-    # plt.figure(figsize = (8, 6), dpi = 80)
-    # plt.plot(t, a['accelx'][offs:], linestyle='--', marker='o', label='line with marker')
-    # plt.plot(t, a['accelx_lowpass'][offs:], linestyle='--', marker='o', label='line with marker')
-    # plt.title('cam_y')  
-    
-    
-    # plt.figure(figsize = (8, 6), dpi = 80)
-    # plt.hist(a['accelx_lowpass'][3:], bins = 40, edgecolor = 'black', facecolor = 'red')
-    # plt.hist(a['accelx'][3:], bins = 40, edgecolor = 'black', facecolor = 'blue')
-    
-    # sigma = np.std(a['accelx_lowpass'][offs:])
-    # print(sigma)
-    
-    # sigma1 = np.std(a['accelx'][offs:])
-    # print(sigma1)
+
     
     
     plt.figure(figsize = (8, 6), dpi = 80)
@@ -130,9 +119,14 @@ if __name__ == "__main__":
     plt.plot(a['cam_x'][offs:], a['cam_y'][offs:], linestyle='--', marker='o', label='line with marker')
     plt.plot(a['accelxPos'][offs:], a['accelyPos'][offs:], linestyle='--', marker='o', label='line with marker')    
     plt.plot(a['estimation_x'][offs:], a['estimation_y'][offs:], linestyle='--', marker='o', label='line with marker')
-    plt.title('cam_x')
-    plt.legend(['odom', 'cam', 'accel', 'est'])
-  
+    plt.xlabel("x position/m")
+    plt.ylabel("y position/m")
+    plt.title('Sensor Data Comparison for Single Robot')
+    
+    plt.legend(['Odometry', 'Camera', 'Estimation'])
+    plt.plot(a['estimation_x'][offs], a['estimation_y'][offs], marker = "x", markeredgecolor = 'red', markersize=12, markeredgewidth = 4)
+    plt.plot(a['estimation_x'][T-1], a['estimation_y'][T-1], marker = "x", markeredgecolor = 'blue', markersize=12, markeredgewidth = 4)
+
 
     
     plt.show()

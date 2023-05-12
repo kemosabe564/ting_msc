@@ -37,16 +37,47 @@ PI = math.pi
 MODE = "cam"
 MODE = "kalman"
 
-sr_KALMAN = 1
-mr_KALMAN = 0
+sr_KALMAN = 0
+mr_KALMAN = 1
 
 with open('mapper.json') as json_file:
     mapper = json.load(json_file)
 
 obstacle_avoidance = utils.ObstacleAvoidance()
 
+class Camera_marker:
+    def __init__(self, N, active_robots):
+        self.number = N
+        self.current_number = N
+        self.listener_camera_list = rospy.Subscriber('Bebop1/makers', Float64MultiArray, self.listen_optitrack_makers_callback)
+        # self.measurement_list = np.zeros([1, 3])
+        self.measurement_list = []
+        for tag in active_robots:
+            temp = np.zeros([1, 3])[0]
+            temp[0] = np.array(mapper[str(tag)]['pos'])[0]
+            temp[1] = np.array(mapper[str(tag)]['pos'])[1]
+            self.measurement_list.append(temp)
 
-
+            
+        
+        
+    def listen_optitrack_makers_callback(self, optiMsg):
+        
+        if(len(optiMsg.data) == 0):
+            self.measurement_list = np.zeros([self.number, 3])[0]
+            return
+        self.measurement_list = []
+        self.current_number = int(optiMsg.data[0])
+        
+        for i in range(self.current_number):
+            temp = np.zeros([1, 3])[0]
+            # z is y, y is z
+            temp[0] = optiMsg.data[i * 3 + 2]
+            temp[1] = optiMsg.data[i * 3 + 4]
+            temp[2] = optiMsg.data[i * 3 + 3]
+            self.measurement_list.append(temp)
+        self.measurement_list = self.measurement_list   
+        
 
 class Camera: 
     def __init__(self, tag):
@@ -58,6 +89,7 @@ class Camera:
         self.timer = 0.0
         self.listener_camera = rospy.Subscriber('Bebop{}/ground_pose'.format(self.tag + 1), Pose2D, self.listen_optitrack_callback)
         self.listener_camera_timer = rospy.Subscriber('Bebop{}/pose'.format(self.tag + 1), Pose, self.listen_optitrack_timer_callback)
+        
               
     # functions for subscribe callback    
     def listen_optitrack_callback(self, optiMsg):
@@ -336,6 +368,26 @@ class Node:
             self.moving = 1
             return 1    
     
+    def determine_camera_marker(self, Camera_marker):
+        MIN_dist = 1e5
+        idx = 0
+        for i in range(Camera_marker.current_number):
+            dist = math.sqrt((self.estimation[0] - Camera_marker.measurement_list[i][0])**2 + (self.estimation[1] - Camera_marker.measurement_list[i][1])**2)
+            if(dist < MIN_dist):
+                MIN_dist = dist
+                idx = i
+        self.cam_x = copy.deepcopy(Camera_marker.measurement_list[idx][0])
+        self.cam_y = copy.deepcopy(Camera_marker.measurement_list[idx][1])
+        self.cam_phi = self.odom_phi
+        
+        if(Camera_marker.number != Camera_marker.current_number):
+            if(MIN_dist > 0.05):
+                return [self.estimation[0], self.estimation[1], self.odom_phi] 
+            else:
+                return [self.cam_x, self.cam_y, self.odom_phi]
+        else:
+            return [self.cam_x, self.cam_y, self.odom_phi]
+        
     def determine_camera(self, cameras):
         # update the camera
         MIN_dist = 1e5
@@ -398,7 +450,7 @@ class Node:
             return [self.cam_x, self.cam_y, self.odom_phi]
 
         
-    def measurement_update(self, cameras):
+    def measurement_update(self, cameras, camera_maker):
         
         # take the measurement from the odom
         odom_measurement = [self.odom_x, self.odom_y, self.odom_phi]        
@@ -406,14 +458,15 @@ class Node:
         
         
         # take the measurement from the accel        
-        self.accelxPos = self.accelxPos + self.accelx * math.cos(self.odom_phi) * sampling_time
-        self.accelyPos = self.accelyPos + self.accelx * math.sin(self.odom_phi) * sampling_time
+        self.accelxPos = self.accelxPos + self.accelx * math.cos(self.estimation[2]) * sampling_time * sampling_time
+        self.accelyPos = self.accelyPos + self.accelx * math.sin(self.estimation[2]) * sampling_time * sampling_time
         
-        accel_measurement = [self.accelxPos, self.accelyPos, self.odom_phi]
+        accel_measurement = [self.accelxPos, self.accelyPos, self.estimation[2]]
         # print(-1000 * self.accelx)
         
         # take the measurement from the cam
-        cam_measurement = self.determine_camera(cameras)
+        # cam_measurement = self.determine_camera(cameras)
+        cam_measurement = self.determine_camera_marker(camera_maker)
         
         # cam_measurement = accel_measurement           
         
@@ -453,7 +506,8 @@ class Node:
         self.estimation = self.measurement_Kalman
         
         
-        if (self.t % 1 == 0):
+        if (self.t % 3 == 0):
+            print([self.cam_x, self.cam_y, self.cam_phi])
             if(sr_KALMAN and ~mr_KALMAN):
                 optimal_state_estimate_k, covariance_estimate_k = self.kalman_cam.sr_EKF(cam_measurement, self.estimation, 1)
             elif(mr_KALMAN and ~sr_KALMAN):
@@ -462,6 +516,8 @@ class Node:
             self.kalman_cam.P_k_1 = covariance_estimate_k
             self.estimation = self.measurement_Kalman
             
+            
+                     
     def measurement_fusion_OWA(self, odom_measurement, accel_measuremrnt, cam_measurement):
         if (MODE == "cam"):
             self.estimation = cam_measurement
@@ -534,19 +590,19 @@ class Node:
             sum_acc = sum(self.acc_error_buffer)
             
             
-            offs = 0.00
-            # sum1 = sum_camera + sum_odo + sum_acc
-            # temp_cam = sum1 / sum_camera
-            # temp_odo = sum1 / sum_odo
-            # temp_acc = sum1 / sum_acc
+            offs = 0.01
+            sum1 = sum_camera + sum_odo + sum_acc
+            temp_cam = sum1 / sum_camera
+            temp_odo = sum1 / sum_odo
+            temp_acc = sum1 / sum_acc
+            sum2 = temp_odo + temp_cam + temp_acc + offs
+            w1 = (temp_odo) / sum2
+            w2 = (temp_cam + offs) / sum2 
+            w3 = (temp_acc) / sum2
             
-            # w1 = (temp_odo) / (temp_odo + temp_cam + temp_acc + offs) 
-            # w2 = (temp_cam + offs) / (temp_odo + temp_cam + temp_acc + offs) 
-            # w3 = (temp_acc) / (temp_odo + temp_cam + temp_acc + offs) 
-            
-            w1 = sum_camera / (sum_camera + sum_odo + offs) 
-            w2 = (sum_odo + offs) / (sum_camera + sum_odo + offs)
-            w3 = sum_camera / (sum_camera + sum_odo + sum_camera + offs) 
+            # w1 = sum_camera / (sum_camera + sum_odo + offs) 
+            # w2 = (sum_odo + offs) / (sum_camera + sum_odo + offs)
+            # w3 = sum_camera / (sum_camera + sum_odo + sum_camera + offs) 
             
             
             # w2 = 0.5
@@ -563,18 +619,26 @@ class Node:
             
             self.estimation = w1 * odo_estimation + w2 * cam_estimation + w3 * acc_estimation
             
-    def loop_fuc(self, cameras, move_type):
+    def loop_fuc(self, cameras, camera_maker, move_type):
         
         # update the timer
         self.t += 1
         
         # 1. take measurement from odom and cam odom_measurement and cam_measurement via sub
-        [odom_measurement, cam_measurement, accel_measurement] = self.measurement_update(cameras)
+        [odom_measurement, cam_measurement, accel_measurement] = self.measurement_update(cameras, camera_maker)
         
         # 2. estimated the position
         self.estimation = self.states_transform(self.estimation, self.input_v, self.input_omega)
         
-        self.measurement_fusion(odom_measurement, accel_measurement, cam_measurement)
+        # self.measurement_fusion(odom_measurement, accel_measurement, cam_measurement)
+        self.measurement_fusion_OWA(odom_measurement, accel_measurement, cam_measurement)
+        
+        disX = self.estimation[0] - self.estimation_prev[0]
+        disY = self.estimation[0] - self.estimation_prev[1]
+        angle = math.atan2(disY, disX)
+
+        self.estimation[2] = angle*57.3; 
+        self.estimation_prev = copy.deepcopy(self.estimation)
         # self.estimation = [self.cam_x, self.cam_y, self.cam_phi]
         
         # 3. decide where to go based on self.estimation
@@ -638,7 +702,7 @@ class Nodes:
         
         self.cameras = Cameras(self.N_total)
         
-
+        self.camera_makers = Camera_marker(self.N_total, active_robots)
         # store
         self.saved_data = dict()
         
@@ -648,9 +712,15 @@ class Nodes:
         # self.ay = np.zeros((1, self.buffer))[0]
     
     def loop_fuc(self, move_type = 'move'):
+        
+        print(self.camera_makers.measurement_list)
+        # print(type(self.camera_makers.measurement_list))
+        # print(len(self.camera_makers.measurement_list))
+        # print(self.camera_makers.measurement_list[1])
+        
         # self.cameras.update_camera()
         for tag in self.nodes:
-            self.nodes[tag].loop_fuc(self.cameras, move_type)
+            self.nodes[tag].loop_fuc(self.cameras, self.camera_makers, move_type)
             
         # SETUP MESSAGE
         self.msg_auto_motive.data = np.array([len(self.nodes)])

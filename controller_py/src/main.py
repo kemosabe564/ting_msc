@@ -16,7 +16,7 @@ if __name__ == "__main__":
     # Init phase
     print("start")   
     robots = Nodes(active_robots)
-
+    # print(robots.camera_makers.measurement_list)
     # Set Leds
     robots.set_leds(green=0, blue=0, red=10)
     
@@ -39,20 +39,21 @@ if __name__ == "__main__":
         rospy.sleep(0.1)
         
     print("start reset")
-    
+    while(robots.camera_makers.number == 0):
+        rospy.sleep(0.05)
     
     # Move Robots
     last_saved_time = 0
     step_size = 1.0
     theta = 0.0
-    for t in range(last_saved_time, 500):
+    for t in range(last_saved_time, 300):
         print('\n')
         print("t: ", t)
         print('\n')
         publisher_tag.publish("run")
         robots.store_data(t)
         robots.loop_fuc('move')
-        if(t%2 == 0):
+        if(t%3 == 0):
             robots.reset('theor')
             
         # robots.move('still', step_size= 0.0, theta = 0.)       

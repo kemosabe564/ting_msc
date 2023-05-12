@@ -6,18 +6,30 @@
 
 
 rigid_bodies:
+    # '0':
+    #     address: 3808
+    #     xPos: 1.03
+    #     yPos: 1.19
+    # '1':
+    #     address: 3801
+    #     xPos: 0.39
+    #     yPos: 1.64  
+    # '2':
+    #     address: 3222
+    #     xPos: 0.42
+    #     yPos: 1.00 
     '0':
         address: 3808
-        xPos: 1.03
-        yPos: 1.19
+        xPos: 0.226
+        yPos: 0.958
     '1':
         address: 3801
-        xPos: 0.39
-        yPos: 1.64  
+        xPos: 0.629
+        yPos: 1.593 
     '2':
         address: 3222
-        xPos: 0.42
-        yPos: 1.00                                                                                                   
+        xPos: 0.032
+        yPos: 1.585                                                                                                  
    #Use this format to create each new rigid body
 
    #'2':
