@@ -337,6 +337,8 @@ class Node:
             self.update_reset = True
             # self.msg_reset = np.array([0, self.pos[-1][0], self.pos[-1][1], self.orien[-1]])
             self.msg_reset = np.array([0, self.estimation[0], self.estimation[1], self.estimation[2]])
+            self.accelxPos = self.estimation[0]
+            self.accelyPos = self.estimation[1]
             
     
     def states_transform(self, X, v, omega):
@@ -557,8 +559,38 @@ class Node:
         acc_estimation = self.measurement_Kalman
         
         # fuse with cam
+        err_odo = ((self.estimation[0] - self.odom_x)**2 + (self.estimation[1] - self.odom_y)**2)
+        err_acc = ((self.estimation[0] - self.accelxPos)**2 + (self.estimation[1] - self.accelyPos)**2)
         
-        if (self.t % 1 == 0):
+        # print(err_acc)
+        self.odo_error_buffer.append(err_odo)
+        self.odo_error_buffer.pop(0)
+        
+        self.acc_error_buffer.append(err_acc)
+        self.acc_error_buffer.pop(0)
+
+        sum_odo = sum(self.odo_error_buffer)
+        sum_acc = sum(self.acc_error_buffer)
+        # print(sum_acc)
+        
+        offs = 0.00
+        sum1 = sum_odo + sum_acc
+        # temp_cam = sum1 / sum_camera
+        temp_odo = sum1 / sum_odo
+        temp_acc = sum1 / sum_acc
+        sum2 = temp_odo + temp_acc + offs
+        w1 = (temp_odo) / sum2
+        # w2 = (temp_cam + offs) / sum2 
+        w2 = 0
+        w3 = (temp_acc) / sum2
+        # print(w3)       
+        self.OWA_w1 = w1
+        self.OWA_w2 = w2
+        self.OWA_w3 = w3
+        # print(self.OWA_W3)
+        self.estimation = w1 * odo_estimation + w3 * acc_estimation
+        
+        if (self.t % 3 == 0):
             if(sr_KALMAN and ~mr_KALMAN):
                 optimal_state_estimate_k, covariance_estimate_k = self.kalman_cam.sr_EKF(cam_measurement, self.estimation, 1)
             elif(mr_KALMAN and ~sr_KALMAN):
@@ -572,17 +604,16 @@ class Node:
             
             
             err_camera = ((self.estimation[0] - self.cam_x)**2 + (self.estimation[1] - self.cam_y)**2)
-            err_odo = ((self.estimation[0] - self.odom_x)**2 + (self.estimation[1] - self.odom_y)**2)
-            err_acc = ((self.estimation[0] - self.accelxPos)**2 + (self.estimation[1] - self.accelyPos)**2)
+            
             
             self.camera_error_buffer.append(err_camera)
             self.camera_error_buffer.pop(0)
             
-            self.odo_error_buffer.append(err_odo)
-            self.odo_error_buffer.pop(0)
+            # self.odo_error_buffer.append(err_odo)
+            # self.odo_error_buffer.pop(0)
             
-            self.acc_error_buffer.append(err_acc)
-            self.acc_error_buffer.pop(0)
+            # self.acc_error_buffer.append(err_acc)
+            # self.acc_error_buffer.pop(0)
             
             
             sum_camera = sum(self.camera_error_buffer)
@@ -590,7 +621,7 @@ class Node:
             sum_acc = sum(self.acc_error_buffer)
             
             
-            offs = 0.01
+            offs = 0.05
             sum1 = sum_camera + sum_odo + sum_acc
             temp_cam = sum1 / sum_camera
             temp_odo = sum1 / sum_odo
@@ -599,11 +630,6 @@ class Node:
             w1 = (temp_odo) / sum2
             w2 = (temp_cam + offs) / sum2 
             w3 = (temp_acc) / sum2
-            
-            # w1 = sum_camera / (sum_camera + sum_odo + offs) 
-            # w2 = (sum_odo + offs) / (sum_camera + sum_odo + offs)
-            # w3 = sum_camera / (sum_camera + sum_odo + sum_camera + offs) 
-            
             
             # w2 = 0.5
             # w1 = 0.5
@@ -615,9 +641,11 @@ class Node:
             
             self.OWA_w1 = w1
             self.OWA_w2 = w2
-            self.OWA_W3 = w3
+            self.OWA_w3 = w3
             
             self.estimation = w1 * odo_estimation + w2 * cam_estimation + w3 * acc_estimation
+        
+        print(self.OWA_w3)
             
     def loop_fuc(self, cameras, camera_maker, move_type):
         
@@ -856,14 +884,14 @@ class Nodes:
                                        'accelxPos': copy.deepcopy(self.nodes[tag].accelxPos),
                                        'accelyPos': copy.deepcopy(self.nodes[tag].accelyPos)
                                        }
-        # self.ax[ :-1] = self.ax[ 1:]
+            print(self.nodes[tag].OWA_w3)
         # self.ay[ :-1] = self.ay[ 1:]
         
         # self.ax[-1] = self.nodes['0'].estimation[0]
         # self.ay[-1] = self.nodes['0'].estimation[1]
 
     def save_data(self, t):
-        with open('./data/saved_data_t0_RUN_test_cas.p','wb') as fp:
+        with open('./data/saved_data_t0_RUN_test.p','wb') as fp:
             pickle.dump(self.saved_data, fp, protocol=pickle.HIGHEST_PROTOCOL)
 
     # def plot_data(self, t):

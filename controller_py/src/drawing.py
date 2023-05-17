@@ -11,19 +11,27 @@ import pickle
 import pandas as pd 
 
 P = 3
+figsize_x = 12
+figsize_y = 5
+dpi_number = 100
+
+label_size = 16
+title_size = 16
+ticks_size = 12
+legend_size = 12
 
 robot_N = 3
 T = 300
 
-offs = 3
+offs = 0
 
 if __name__ == "__main__":
 
     robot_history = dict.fromkeys(['0', '1', '2'], dict())
     
-    key_set = ['orien', 'pos_x', 'pos_y', 'estimation_phi', 'estimation_x', 'estimation_y', 'cam_phi', 'cam_x', 'cam_y', 'x', 'y', 'phi', 'P_k_odo', 'P_k_cam', 'OWA_w1', 'OWA_w2', 'accelx', 'accelx_lowpass', 'accelxPos', 'accelyPos']
+    key_set = ['pos_x', 'pos_y', 'orien', 'estimation_x', 'estimation_y', 'estimation_phi', 'cam_x', 'cam_y', 'cam_phi', 'x', 'y', 'phi', 'P_k_odo', 'P_k_cam', 'odom_timer', 'cam_timer', 'OWA_w1', 'OWA_w2', 'OWA_w3', 'accelx', 'accelx_lowpass', 'accelxPos', 'accelyPos']
     
-    with open('./data/saved_data_t0_RUN_test_cas.p', 'rb') as fp:
+    with open('./data/saved_data_t0_RUN_test_OWA_reset_high_F_sr.p', 'rb') as fp:
         if P == 3:
             b = pickle.load(fp)
         elif P == 2:
@@ -55,7 +63,7 @@ if __name__ == "__main__":
     # a = pd.DataFrame(robot_history['2']).T
     # print('2')
     # print(a)
-    plt.figure(figsize = (8, 6), dpi = 80)
+    plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
 
     for i in range(robot_N):
         a = pd.DataFrame(robot_history[str(i)]).T
@@ -81,58 +89,86 @@ if __name__ == "__main__":
     # print(a)
     # print(a['pos_x'])
 
-    plt.figure(figsize = (8, 6), dpi = 80)
+    plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
     plt.plot(a['pos_x'][offs:], a['pos_y'][offs:], linestyle='--', marker='o', label='line with marker')
     plt.title('Odometry')
     
-    plt.figure(figsize = (8, 6), dpi = 80)
+    plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
     plt.plot(a['cam_x'][offs:], a['cam_y'][offs:], linestyle='--', marker='o', label='line with marker')
     plt.title('Camera')
     
-    plt.figure(figsize = (8, 6), dpi = 80)
+    plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
     plt.plot(a['estimation_x'][offs:], a['estimation_y'][offs:], linestyle='--', marker='o', label='line with marker')
     plt.title('Estimation')
     
     
-    plt.figure(figsize = (8, 6), dpi = 80)
+    plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
     plt.plot(t, a['OWA_w1'][offs:], linestyle='--', marker='o', label='line with marker')
     plt.title('OWA_w1')
     
-    plt.figure(figsize = (8, 6), dpi = 80)
+    plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
     plt.plot(t, a['OWA_w2'][offs:], linestyle='--', marker='o', label='line with marker')
     plt.title('OWA_w2')
 
-    plt.figure(figsize = (8, 6), dpi = 80)
+    plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
     plt.plot(t, a['OWA_w3'][offs:], linestyle='--', marker='o', label='line with marker')
     plt.title('OWA_w3')
+    
+    
 
 
-    plt.figure(figsize = (8, 6), dpi = 80)
+    plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
     plt.plot(a['accelxPos'][offs:], a['accelyPos'][offs:], linestyle='--', marker='o', label='line with marker')
     plt.title('accel')
     
 
+    plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
+    plt.plot(t, a['OWA_w1'][offs:], linestyle='--', marker='o', label='line with marker')
+    plt.plot(t, a['OWA_w2'][offs:], linestyle='--', marker='o', label='line with marker')
+    plt.xlabel("time/s", fontsize = label_size)
+    plt.ylabel("weight", fontsize = label_size)
+    plt.title('Weight Comparison', fontsize = title_size)
+    plt.legend(['Odometry', 'Camera'], fontsize = legend_size)
+    plt.yticks(fontsize = ticks_size)
+    plt.xticks(fontsize = ticks_size)
+    plt.grid()
+
     
-    
-    plt.figure(figsize = (8, 6), dpi = 80)
+    plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
     plt.plot(a['pos_x'][offs:], a['pos_y'][offs:], linestyle='--', marker='o', label='line with marker')
     plt.plot(a['cam_x'][offs:], a['cam_y'][offs:], linestyle='--', marker='o', label='line with marker')
     plt.plot(a['accelxPos'][offs:], a['accelyPos'][offs:], linestyle='--', marker='o', label='line with marker')    
     plt.plot(a['estimation_x'][offs:], a['estimation_y'][offs:], linestyle='--', marker='o', label='line with marker')
-    plt.xlabel("x position/m")
-    plt.ylabel("y position/m")
-    plt.title('Sensor Data Comparison for Single Robot')
+    plt.xlabel("x position/m", fontsize = label_size)
+    plt.ylabel("y position/m", fontsize = label_size)
+    plt.title('Sensor Data Comparison for Single Robot', fontsize = title_size)
     
-    plt.legend(['Odometry', 'Camera', 'Estimation'])
+    plt.yticks(fontsize = ticks_size)
+
+    plt.xticks(fontsize = ticks_size)
+
+    plt.legend(['Odometry', 'Camera', 'Accelerometer', 'Estimation'], fontsize = legend_size)
     plt.plot(a['estimation_x'][offs], a['estimation_y'][offs], marker = "x", markeredgecolor = 'red', markersize=12, markeredgewidth = 4)
     plt.plot(a['estimation_x'][T-1], a['estimation_y'][T-1], marker = "x", markeredgecolor = 'blue', markersize=12, markeredgewidth = 4)
+    plt.grid()
 
 
     
+    # plt.show()
+    
+    
+    # print(a['estimation_x'][offs:T-100:2])
+    plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
+
+    plt.plot(a['estimation_x'][offs:T:3], a['estimation_y'][offs:T:3], linestyle='--', marker='o', label='line with marker')
+    plt.plot(a['cam_x'][offs:T:3], a['cam_y'][offs:T:3], linestyle='--', marker='o', label='line with marker')
+    plt.title('Sensor asdasdasdasd', fontsize = title_size)
+    asd = sum((a['estimation_x'][offs:T:3] - a['cam_x'][offs:T:3]) ** 2 + (a['estimation_y'][offs:T:3] - a['cam_y'][offs:T:3]) ** 2)
+    
+    print(a['estimation_x'][offs:T:3])
+    print(a['cam_x'][offs:T:3])
+    print(asd/100)
     plt.show()
-    
-
-    
     
     
     
