@@ -25,13 +25,17 @@ T = 300
 
 offs = 0
 
+f = './data/data_ch6/saved_data_t0_RUN_test_OWA_noreset_low_mr.p'
+
+f = './data/data_ch6/saved_data_t0_RUN_test_OWA_noreset_low_mr.p'
+
 if __name__ == "__main__":
 
     robot_history = dict.fromkeys(['0', '1', '2'], dict())
     
     key_set = ['pos_x', 'pos_y', 'orien', 'estimation_x', 'estimation_y', 'estimation_phi', 'cam_x', 'cam_y', 'cam_phi', 'x', 'y', 'phi', 'P_k_odo', 'P_k_cam', 'odom_timer', 'cam_timer', 'OWA_w1', 'OWA_w2', 'OWA_w3', 'accelx', 'accelx_lowpass', 'accelxPos', 'accelyPos']
     
-    with open('./data/saved_data_t0_RUN_test_OWA_reset_high_F_sr.p', 'rb') as fp:
+    with open(f, 'rb') as fp:
         if P == 3:
             b = pickle.load(fp)
         elif P == 2:
@@ -82,7 +86,7 @@ if __name__ == "__main__":
     
     
     
-    a = pd.DataFrame(robot_history['0']).T
+    a = pd.DataFrame(robot_history['2']).T
     print(a)
     # a = pd.DataFrame(robot_history['0']).T
     # print('0')
