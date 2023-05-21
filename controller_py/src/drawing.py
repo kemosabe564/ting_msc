@@ -27,7 +27,7 @@ offs = 0
 
 f = './data/data_ch6/saved_data_t0_RUN_test_OWA_noreset_low_mr.p'
 
-f = './data/data_ch7/ETC_3_line_line_video.p'
+f = './data/data_ch7/saved_data_t0_RUN_test_OWA_noreset_low_mr.p'
 
 if __name__ == "__main__":
 
