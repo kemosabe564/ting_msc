@@ -46,7 +46,7 @@ if __name__ == "__main__":
     last_saved_time = 0
     step_size = 1.0
     theta = 0.0
-    for t in range(last_saved_time, 300):
+    for t in range(last_saved_time, 20):
         print('\n')
         print("t: ", t)
         print('\n')
@@ -66,7 +66,8 @@ if __name__ == "__main__":
     robots.save_data(0)
     
     # Stop engine
-    robots.move('still', step_size= 0.0, theta=0.)
+    for i in range(10):
+        robots.move('still', step_size= 0.0, theta=0.)
     
     publisher_tag.publish("stop")
     

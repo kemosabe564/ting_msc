@@ -1,6 +1,8 @@
 <launch>
 	<arg name="robots_config_file"
 	default="$(find mocap_optitrack)/config/mocap.yaml" />
+    <!-- <arg name="robots_config_file_1"
+	default="$(find mocap_optitrack)/config/mocap_1.yaml" /> -->
 
 	<arg name="base_tag" default="elisa3_robot"/>
 	<arg name="xpos" default="0.0"/>
@@ -27,6 +29,16 @@
 
     	<rosparam file="$(arg robots_config_file)" command="load" />
     </node>
+
+    <!-- <node pkg="elisa3_node_cpp" type="elisa3_node_cpp_1" name="swarm1" output="screen">
+        <param name="base_tag" value="$(arg base_tag)"/>
+        <param name="accelerometer" value="$(arg acc_en)"/>
+        <param name="proximity" value="$(arg prox_en)"/>
+        <param name="motor_position" value="$(arg mot_pos_en)"/>
+        <param name="floor" value="$(arg floor_en)"/>
+
+    	<rosparam file="$(arg robots_config_file_1)" command="load" />
+    </node> -->
     
         <!-- <param name="robot_description" textfile="$(find elisa3_node_cpp)/urdf/elisa3_urdf.xml"/> -->
 

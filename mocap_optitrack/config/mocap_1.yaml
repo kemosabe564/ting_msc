@@ -19,7 +19,7 @@ rigid_bodies:
     #     xPos: 0.42
     #     yPos: 1.00 
     '0':
-        address: 3808
+        address: 3749
         xPos: 0.226
         yPos: 0.958
     '1':
@@ -31,13 +31,13 @@ rigid_bodies:
         xPos: 0.032
         yPos: 1.585 
     '3':
-        address: 3749
+        address: 3333
         xPos: 0.032
         yPos: 1.585  
-    '4':
-        address: 3222
-        xPos: 0.032
-        yPos: 1.585                                                                                                      
+    # '4':
+    #     address: 3749
+    #     xPos: 0.032
+    #     yPos: 1.585                                                                                                      
    #Use this format to create each new rigid body
 
    #'2':
@@ -48,6 +48,3 @@ rigid_bodies:
 optitrack_config:
 #	multicast_address: 192.169.209.203
        multicast_address: 224.0.0.1
-
-
-

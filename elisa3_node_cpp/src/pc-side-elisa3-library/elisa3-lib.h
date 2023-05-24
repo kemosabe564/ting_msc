@@ -41,6 +41,9 @@ void setLeftSpeed(int robotAddr, char value);
  */
 void setRightSpeed(int robotAddr, char value);
 
+void setXpos(int robotAddr, int value);
+void setYpos(int robotAddr, int value);
+
 /**
  * \brief Set the left speed of all the robots specified in the list.
  * \param value The speed array, range is between -128 to 127.
@@ -55,10 +58,8 @@ void setLeftSpeedForAll(char *value);
  */
 void setRightSpeedForAll(char *value);
 
-// SELF-MADE
 void setAllColors(int robotAddr, char red, char green, char blue);
-void setXpos(int robotAddr, int value);
-void setYpos(int robotAddr, int value);
+
 /**
  * \brief Set the red intensity of the RGB led on the robot.
  * \param robotAddr the address of the robot for which to change the packet.
@@ -623,6 +624,5 @@ unsigned char sendMessageToRobot(int robotAddr, char red, char green, char blue,
 #endif
 
 #endif // ELISA3_LIB_H_
-
 
 

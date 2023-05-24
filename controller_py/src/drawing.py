@@ -25,7 +25,7 @@ T = 300
 
 offs = 0
 
-f = './data/data_ch6/saved_data_t0_RUN_test_OWA_noreset_low_mr.p'
+f = './data/data_ch6/saved_data_t0_RUN_test_OWA_reset_low_f_MR.p'
 
 # f = './data/data_ch7/saved_data_t0_RUN_test_OWA_noreset_low_mr.p'
 
@@ -78,15 +78,17 @@ if __name__ == "__main__":
         plt.plot(a['estimation_x'][offs:], a['estimation_y'][offs:], linestyle='--', marker='o', label='line with marker')
     
         
-    plt.legend(['Robot 1', 'Robot 2', 'Robot 3'])
-    plt.xlabel("x position/m")
-    plt.ylabel("y position/m")
+    plt.legend(['Robot 1', 'Robot 2', 'Robot 3'], fontsize = legend_size)
+    plt.xlabel("x position/m", fontsize = label_size)
+    plt.ylabel("y position/m", fontsize = label_size)
     for i in range(robot_N):
         a = pd.DataFrame(robot_history[str(i)]).T
         plt.plot(a['estimation_x'][offs], a['estimation_y'][offs], marker = "x", markeredgecolor = 'red', markersize=12, markeredgewidth = 4)
         plt.plot(a['estimation_x'][T-1], a['estimation_y'][T-1], marker = "x", markeredgecolor = 'blue', markersize=12, markeredgewidth = 4)
-    plt.title('Robots Tracking Result')
-    
+    plt.title('Robots Tracking Result', fontsize = title_size)
+    plt.yticks(fontsize = ticks_size)
+    plt.xticks(fontsize = ticks_size)
+    plt.grid()
     
     
     a = pd.DataFrame(robot_history['2']).T

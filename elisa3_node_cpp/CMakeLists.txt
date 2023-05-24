@@ -113,6 +113,7 @@ link_directories(src/pc-side-elisa3-library/linux)
 
 ## Declare a cpp executable
 add_executable(elisa3_node_cpp src/elisa3_node_cpp.cpp)
+# add_executable(elisa3_node_cpp_1 src/elisa3_node_cpp_1.cpp)
 add_executable(elisa3_odom_filter src/elisa3_odom_filter.cpp)
 
 ## Add cmake target dependencies of the executable/library
@@ -122,6 +123,8 @@ add_executable(elisa3_odom_filter src/elisa3_odom_filter.cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(elisa3_node_cpp ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} elisa3 pthread usb-1.0
 )
+# target_link_libraries(elisa3_node_cpp_1 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} elisa3 pthread usb-1.0
+# )
 target_link_libraries(elisa3_odom_filter ${catkin_LIBRARIES} 
 )
 

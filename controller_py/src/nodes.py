@@ -891,7 +891,7 @@ class Nodes:
         # self.ay[-1] = self.nodes['0'].estimation[1]
 
     def save_data(self, t):
-        with open('./data/saved_data_t0_RUN_test.p','wb') as fp:
+        with open('./data/saved_data_t1_RUN_test.p','wb') as fp:
             pickle.dump(self.saved_data, fp, protocol=pickle.HIGHEST_PROTOCOL)
 
     # def plot_data(self, t):
