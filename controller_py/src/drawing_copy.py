@@ -326,7 +326,7 @@ if __name__ == "__main__":
     
     
     fig = plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
-    
+    plt.grid()
     ims = []
     
     temp_x = []
@@ -369,7 +369,7 @@ if __name__ == "__main__":
         plt.title('Robots Tracking Result', fontsize = title_size)
         plt.yticks(fontsize = ticks_size)
         plt.xticks(fontsize = ticks_size)
-        plt.grid()
+        
         ims.append([im1, im2, im3, im4, im5, im6, im7, im8])
         
     ani = animation.ArtistAnimation(fig, ims, interval = 10)
