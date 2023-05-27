@@ -23,7 +23,8 @@ if __name__ == "__main__":
     publisher_tag = rospy.Publisher("elisa3_tag", String, queue_size=10)
     
     # Reset the robot odom in the beginning    
-    while(1):
+    i = 0
+    while(i < 3):
         print("wait for odom response")
         robots.move('still', step_size= 0.0, theta=0.)
         robots.reset('theor')
@@ -37,16 +38,17 @@ if __name__ == "__main__":
             print("reseted")
             break
         rospy.sleep(0.1)
+        i += 1
         
     print("start reset")
-    while(robots.camera_makers.number == 0):
+    while(len(robots.camera_makers.measurement_list) == 0):
         rospy.sleep(0.05)
     
     # Move Robots
     last_saved_time = 0
     step_size = 1.0
     theta = 0.0
-    for t in range(last_saved_time, 20):
+    for t in range(last_saved_time, 110):
         print('\n')
         print("t: ", t)
         print('\n')
@@ -68,6 +70,7 @@ if __name__ == "__main__":
     # Stop engine
     for i in range(10):
         robots.move('still', step_size= 0.0, theta=0.)
+        rospy.sleep(0.05)
     
     publisher_tag.publish("stop")
     

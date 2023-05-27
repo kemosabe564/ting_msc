@@ -30,7 +30,7 @@ t_delay = 0.5
 std_vlt_trans = 20
 std_vlt_rot = 10
 
-sampling_time = 0.05
+sampling_time = 0.005
 
 PI = math.pi
 
@@ -51,12 +51,13 @@ class Camera_marker:
         self.current_number = N
         self.listener_camera_list = rospy.Subscriber('Bebop1/makers', Float64MultiArray, self.listen_optitrack_makers_callback)
         # self.measurement_list = np.zeros([1, 3])
+                
         self.measurement_list = []
-        for tag in active_robots:
-            temp = np.zeros([1, 3])[0]
-            temp[0] = np.array(mapper[str(tag)]['pos'])[0]
-            temp[1] = np.array(mapper[str(tag)]['pos'])[1]
-            self.measurement_list.append(temp)
+        # for tag in active_robots:
+        #     temp = np.zeros([1, 3])[0]
+        #     temp[0] = np.array(mapper[str(tag)]['pos'])[0]
+        #     temp[1] = np.array(mapper[str(tag)]['pos'])[1]
+        #     self.measurement_list.append(temp)
 
             
         
@@ -64,19 +65,19 @@ class Camera_marker:
     def listen_optitrack_makers_callback(self, optiMsg):
         
         if(len(optiMsg.data) == 0):
-            self.measurement_list = np.zeros([self.number, 3])[0]
+            # self.measurement_list = np.zeros([self.number, 3])[0]
+            self.measurement_list = []
             return
-        self.measurement_list = []
+        self.measurement_list = optiMsg.data
         self.current_number = int(optiMsg.data[0])
         
-        for i in range(self.current_number):
-            temp = np.zeros([1, 3])[0]
-            # z is y, y is z
-            temp[0] = optiMsg.data[i * 3 + 2]
-            temp[1] = optiMsg.data[i * 3 + 4]
-            temp[2] = optiMsg.data[i * 3 + 3]
-            self.measurement_list.append(temp)
-        self.measurement_list = self.measurement_list   
+        # for i in range(self.current_number):
+        #     temp = np.zeros([1, 3])[0]
+        #     # z is y, y is z
+        #     temp[0] = optiMsg.data[i * 3 + 2]
+        #     temp[1] = optiMsg.data[i * 3 + 4]
+        #     temp[2] = optiMsg.data[i * 3 + 3]
+        #     self.measurement_list.append(temp)
         
 
 class Camera: 
@@ -278,7 +279,7 @@ class Node:
                             [self.accelxPos, self.accelyPos], self.accelx)
         # if(self.tag == '0'):            
         #     print("msg: ", msg)
-        print("msg: ", msg)
+        # print("msg: ", msg)
 
     def compute_move(self, pol: np.array):
         """
@@ -373,17 +374,19 @@ class Node:
     def determine_camera_marker(self, Camera_marker):
         MIN_dist = 1e5
         idx = 0
+        print(Camera_marker.current_number)
+        # print(Camera_marker.measurement_list)
         for i in range(Camera_marker.current_number):
-            dist = math.sqrt((self.estimation[0] - Camera_marker.measurement_list[i][0])**2 + (self.estimation[1] - Camera_marker.measurement_list[i][1])**2)
+            dist = math.sqrt((self.estimation[0] - Camera_marker.measurement_list[i * 3 + 2])**2 + (self.estimation[1] - Camera_marker.measurement_list[i * 3 + 4])**2)
             if(dist < MIN_dist):
                 MIN_dist = dist
                 idx = i
-        self.cam_x = copy.deepcopy(Camera_marker.measurement_list[idx][0])
-        self.cam_y = copy.deepcopy(Camera_marker.measurement_list[idx][1])
+        self.cam_x = copy.deepcopy(Camera_marker.measurement_list[idx * 3 + 2])
+        self.cam_y = copy.deepcopy(Camera_marker.measurement_list[idx * 3 + 4])
         self.cam_phi = self.odom_phi
         
         if(Camera_marker.number != Camera_marker.current_number):
-            if(MIN_dist > 0.05):
+            if(MIN_dist > 0.06):
                 return [self.estimation[0], self.estimation[1], self.odom_phi] 
             else:
                 return [self.cam_x, self.cam_y, self.odom_phi]
@@ -472,7 +475,7 @@ class Node:
         
         # cam_measurement = accel_measurement           
         
-        self.print_position_measures()
+        # self.print_position_measures()
         
         return [odom_measurement, cam_measurement, accel_measurement]
             
@@ -509,7 +512,7 @@ class Node:
         
         
         if (self.t % 3 == 0):
-            print([self.cam_x, self.cam_y, self.cam_phi])
+            # print([self.cam_x, self.cam_y, self.cam_phi])
             if(sr_KALMAN and ~mr_KALMAN):
                 optimal_state_estimate_k, covariance_estimate_k = self.kalman_cam.sr_EKF(cam_measurement, self.estimation, 1)
             elif(mr_KALMAN and ~sr_KALMAN):
@@ -590,7 +593,7 @@ class Node:
         # print(self.OWA_W3)
         self.estimation = w1 * odo_estimation + w3 * acc_estimation
         
-        if (self.t % 3 == 0):
+        if (self.t % 1 == 0):
             if(sr_KALMAN and ~mr_KALMAN):
                 optimal_state_estimate_k, covariance_estimate_k = self.kalman_cam.sr_EKF(cam_measurement, self.estimation, 1)
             elif(mr_KALMAN and ~sr_KALMAN):
@@ -621,11 +624,12 @@ class Node:
             sum_acc = sum(self.acc_error_buffer)
             
             
-            offs = 0.05
+            offs = 0.9
             sum1 = sum_camera + sum_odo + sum_acc
             temp_cam = sum1 / sum_camera
             temp_odo = sum1 / sum_odo
             temp_acc = sum1 / sum_acc
+            temp_acc = 0
             sum2 = temp_odo + temp_cam + temp_acc + offs
             w1 = (temp_odo) / sum2
             w2 = (temp_cam + offs) / sum2 
@@ -645,21 +649,27 @@ class Node:
             
             self.estimation = w1 * odo_estimation + w2 * cam_estimation + w3 * acc_estimation
         
-        print(self.OWA_w3)
+        # print(self.OWA_w3)
             
     def loop_fuc(self, cameras, camera_maker, move_type):
         
         # update the timer
         self.t += 1
         
+        print(self.tag, rospy.get_time())
+        
         # 1. take measurement from odom and cam odom_measurement and cam_measurement via sub
         [odom_measurement, cam_measurement, accel_measurement] = self.measurement_update(cameras, camera_maker)
+        
+        print(self.tag, rospy.get_time())
         
         # 2. estimated the position
         self.estimation = self.states_transform(self.estimation, self.input_v, self.input_omega)
         
         # self.measurement_fusion(odom_measurement, accel_measurement, cam_measurement)
         self.measurement_fusion_OWA(odom_measurement, accel_measurement, cam_measurement)
+        
+        print(self.tag, rospy.get_time())
         
         disX = self.estimation[0] - self.estimation_prev[0]
         disY = self.estimation[0] - self.estimation_prev[1]
@@ -681,7 +691,7 @@ class Node:
         #     step = 0
         #     omega = 0
         
-        [step, omega] = [1.5, 0]    
+        [step, omega] = [1.2, 0]    
         self.input_v = step
         self.input_omega = omega
         
@@ -741,7 +751,7 @@ class Nodes:
     
     def loop_fuc(self, move_type = 'move'):
         
-        print(self.camera_makers.measurement_list)
+        # print(self.camera_makers.measurement_list)
         # print(type(self.camera_makers.measurement_list))
         # print(len(self.camera_makers.measurement_list))
         # print(self.camera_makers.measurement_list[1])
@@ -882,16 +892,17 @@ class Nodes:
                                        'accelx': copy.deepcopy(self.nodes[tag].accelx),
                                        'accelx_lowpass': copy.deepcopy(self.nodes[tag].accelx_lowpass),
                                        'accelxPos': copy.deepcopy(self.nodes[tag].accelxPos),
-                                       'accelyPos': copy.deepcopy(self.nodes[tag].accelyPos)
+                                       'accelyPos': copy.deepcopy(self.nodes[tag].accelyPos),
+                                       'full_camera': copy.deepcopy(self.camera_makers.measurement_list)
                                        }
-            print(self.nodes[tag].OWA_w3)
+            # print(self.nodes[tag].OWA_w3)
         # self.ay[ :-1] = self.ay[ 1:]
         
         # self.ax[-1] = self.nodes['0'].estimation[0]
         # self.ay[-1] = self.nodes['0'].estimation[1]
 
     def save_data(self, t):
-        with open('./data/saved_data_t1_RUN_test.p','wb') as fp:
+        with open('./data/saved_data_t10_RUN_test.p','wb') as fp:
             pickle.dump(self.saved_data, fp, protocol=pickle.HIGHEST_PROTOCOL)
 
     # def plot_data(self, t):

@@ -399,12 +399,14 @@ void handlerAllAutoMove(const std_msgs::Float64MultiArray::ConstPtr& msg) {
         int trans_type = int(msg->data[i*5+4]);
         if (turn_type==0){
             int prop_msg = int(double(double(msg->data[i*5+3])*(75.0/(2.0*M_PI))+100.0));
+            // int prop_msg = int(double(double(msg->data[i*5+3])*(75.0/(2.0*M_PI))));
             if (prop_msg >= 175) {
                 prop_msg = 175;
             }
             robots_dict[tag].redLed_move = prop_msg;
         } else if (turn_type==1){
             int prop_msg = int(double(double(msg->data[i*5+3])*(75.0/(2.0*M_PI))+175.0));
+            // int prop_msg = int(double(double(msg->data[i*5+3])*(75.0/(2.0*M_PI))));
             if (prop_msg >= 250) {
                 prop_msg = 250;
             } else if (prop_msg == 175){
@@ -519,13 +521,13 @@ void updateActuators() {
         // std::cout << "speed: " << robots_dict[it->first].speedLeft << std::endl;
         
         if(robots_dict[it->first].redLed_move == 0){
-            setLeftSpeed(robots_dict[it->first].address, 1);
-            setRightSpeed(robots_dict[it->first].address, 1);
+            setLeftSpeed(robots_dict[it->first].address, 0);
+            setRightSpeed(robots_dict[it->first].address, 0);
 
         }
         else{
-            setLeftSpeed(robots_dict[it->first].address, robots_dict[it->first].redLed_move/10);
-            setRightSpeed(robots_dict[it->first].address, robots_dict[it->first].redLed_move/10);
+            setLeftSpeed(robots_dict[it->first].address, robots_dict[it->first].blueLed_move/30);
+            setRightSpeed(robots_dict[it->first].address, robots_dict[it->first].blueLed_move/30);
 
         }
 

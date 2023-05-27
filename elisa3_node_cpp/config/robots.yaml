@@ -13,8 +13,12 @@ robots:
         address: 3749
     '4':
         address: 3222
-    # '3':
-    #     address: 3222
+    '5':
+        address: 3810
+    '6':
+        address: 3778
+    '7':
+        address: 3748
 #3658
    #Use this format to create each new rigid body
 

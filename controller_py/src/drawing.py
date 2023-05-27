@@ -20,12 +20,12 @@ title_size = 16
 ticks_size = 12
 legend_size = 12
 
-robot_N = 3
-T = 300
+robot_N = 8
+T = 110
 
 offs = 0
 
-f = './data/data_ch6/saved_data_t0_RUN_test_OWA_reset_low_f_MR.p'
+f = './data/saved_data_t10_RUN_test.p'
 
 # f = './data/data_ch7/saved_data_t0_RUN_test_OWA_noreset_low_mr.p'
 
@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     robot_history = dict.fromkeys(['0', '1', '2'], dict())
     
-    key_set = ['pos_x', 'pos_y', 'orien', 'estimation_x', 'estimation_y', 'estimation_phi', 'cam_x', 'cam_y', 'cam_phi', 'x', 'y', 'phi', 'P_k_odo', 'P_k_cam', 'odom_timer', 'cam_timer', 'OWA_w1', 'OWA_w2', 'OWA_w3', 'accelx', 'accelx_lowpass', 'accelxPos', 'accelyPos']
+    key_set = ['pos_x', 'pos_y', 'orien', 'estimation_x', 'estimation_y', 'estimation_phi', 'cam_x', 'cam_y', 'cam_phi', 'x', 'y', 'phi', 'P_k_odo', 'P_k_cam', 'odom_timer', 'cam_timer', 'OWA_w1', 'OWA_w2', 'OWA_w3', 'accelx', 'accelx_lowpass', 'accelxPos', 'accelyPos', 'full_camera']
     
     with open(f, 'rb') as fp:
         if P == 3:
@@ -91,24 +91,24 @@ if __name__ == "__main__":
     plt.grid()
     
     
-    a = pd.DataFrame(robot_history['2']).T
-    print(a)
-    # a = pd.DataFrame(robot_history['0']).T
-    # print('0')
+    a = pd.DataFrame(robot_history['1']).T
     # print(a)
-    # print(a['pos_x'])
+    # # a = pd.DataFrame(robot_history['0']).T
+    # # print('0')
+    # # print(a)
+    # # print(a['pos_x'])
 
-    plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
-    plt.plot(a['pos_x'][offs:], a['pos_y'][offs:], linestyle='--', marker='o', label='line with marker')
-    plt.title('Odometry')
+    # plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
+    # plt.plot(a['pos_x'][offs:], a['pos_y'][offs:], linestyle='--', marker='o', label='line with marker')
+    # plt.title('Odometry')
     
-    plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
-    plt.plot(a['cam_x'][offs:], a['cam_y'][offs:], linestyle='--', marker='o', label='line with marker')
-    plt.title('Camera')
+    # plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
+    # plt.plot(a['cam_x'][offs:], a['cam_y'][offs:], linestyle='--', marker='o', label='line with marker')
+    # plt.title('Camera')
     
-    plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
-    plt.plot(a['estimation_x'][offs:], a['estimation_y'][offs:], linestyle='--', marker='o', label='line with marker')
-    plt.title('Estimation')
+    # plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
+    # plt.plot(a['estimation_x'][offs:], a['estimation_y'][offs:], linestyle='--', marker='o', label='line with marker')
+    # plt.title('Estimation')
     
     
     plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
@@ -126,21 +126,21 @@ if __name__ == "__main__":
     
 
 
-    plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
-    plt.plot(a['accelxPos'][offs:], a['accelyPos'][offs:], linestyle='--', marker='o', label='line with marker')
-    plt.title('accel')
+    # plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
+    # plt.plot(a['accelxPos'][offs:], a['accelyPos'][offs:], linestyle='--', marker='o', label='line with marker')
+    # plt.title('accel')
     
 
-    plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
-    plt.plot(t, a['OWA_w1'][offs:], linestyle='--', marker='o', label='line with marker')
-    plt.plot(t, a['OWA_w2'][offs:], linestyle='--', marker='o', label='line with marker')
-    plt.xlabel("time/s", fontsize = label_size)
-    plt.ylabel("weight", fontsize = label_size)
-    plt.title('Weight Comparison', fontsize = title_size)
-    plt.legend(['Odometry', 'Camera'], fontsize = legend_size)
-    plt.yticks(fontsize = ticks_size)
-    plt.xticks(fontsize = ticks_size)
-    plt.grid()
+    # plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
+    # plt.plot(t, a['OWA_w1'][offs:], linestyle='--', marker='o', label='line with marker')
+    # plt.plot(t, a['OWA_w2'][offs:], linestyle='--', marker='o', label='line with marker')
+    # plt.xlabel("time/s", fontsize = label_size)
+    # plt.ylabel("weight", fontsize = label_size)
+    # plt.title('Weight Comparison', fontsize = title_size)
+    # plt.legend(['Odometry', 'Camera'], fontsize = legend_size)
+    # plt.yticks(fontsize = ticks_size)
+    # plt.xticks(fontsize = ticks_size)
+    # plt.grid()
 
     
     plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
@@ -163,20 +163,20 @@ if __name__ == "__main__":
 
 
     
-    # plt.show()
+    # # plt.show()
     
     
-    # print(a['estimation_x'][offs:T-100:2])
-    plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
+    # # print(a['estimation_x'][offs:T-100:2])
+    # plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
 
-    plt.plot(a['estimation_x'][offs:T:3], a['estimation_y'][offs:T:3], linestyle='--', marker='o', label='line with marker')
-    plt.plot(a['cam_x'][offs:T:3], a['cam_y'][offs:T:3], linestyle='--', marker='o', label='line with marker')
-    plt.title('Sensor asdasdasdasd', fontsize = title_size)
-    asd = sum((a['estimation_x'][offs:T:3] - a['cam_x'][offs:T:3]) ** 2 + (a['estimation_y'][offs:T:3] - a['cam_y'][offs:T:3]) ** 2)
+    # plt.plot(a['estimation_x'][offs:T:3], a['estimation_y'][offs:T:3], linestyle='--', marker='o', label='line with marker')
+    # plt.plot(a['cam_x'][offs:T:3], a['cam_y'][offs:T:3], linestyle='--', marker='o', label='line with marker')
+    # plt.title('Sensor asdasdasdasd', fontsize = title_size)
+    # asd = sum((a['estimation_x'][offs:T:3] - a['cam_x'][offs:T:3]) ** 2 + (a['estimation_y'][offs:T:3] - a['cam_y'][offs:T:3]) ** 2)
     
-    print(a['estimation_x'][offs:T:3])
-    print(a['cam_x'][offs:T:3])
-    print(asd/100)
+    # print(a['estimation_x'][offs:T:3])
+    # print(a['cam_x'][offs:T:3])
+    # print(asd/100)
     plt.show()
     
     
