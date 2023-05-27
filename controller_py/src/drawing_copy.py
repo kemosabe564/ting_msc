@@ -321,59 +321,59 @@ if __name__ == "__main__":
     
     
     # plt.ioff()
-    # plt.show()
+    plt.show()
     
     
     
-    fig = plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
-    plt.grid()
-    ims = []
+    # fig = plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
+    # plt.grid()
+    # ims = []
     
-    temp_x = []
-    temp_y = []
-    for i in range(robot_N):
-        temp_x.append([])
-        temp_y.append([])
-    # print(temp_x)    
-    for i in range(T):
+    # temp_x = []
+    # temp_y = []
+    # for i in range(robot_N):
+    #     temp_x.append([])
+    #     temp_y.append([])
+    # # print(temp_x)    
+    # for i in range(T):
         
         
-        for j in range(robot_N):
-            a = b[j]
-            if(len(temp_x[j]) > 20):
-                temp_x[j].pop(0)
-                temp_y[j].pop(0)
-            temp_x[j].append(a["data_x"][i])
-            temp_y[j].append(a["data_y"][i])
-        # for j in range(2):
+    #     for j in range(robot_N):
+    #         a = b[j]
+    #         if(len(temp_x[j]) > 20):
+    #             temp_x[j].pop(0)
+    #             temp_y[j].pop(0)
+    #         temp_x[j].append(a["data_x"][i])
+    #         temp_y[j].append(a["data_y"][i])
+    #     # for j in range(2):
             
-        #     im, = plt.plot(temp_x[j], temp_y[j], linestyle='--', marker='o', label='line with marker', markersize = 4)
-        #     ims.append([im])
-        im1, = plt.plot(temp_x[0], temp_y[0], linestyle='--', marker='o', label='line with marker', markersize = 4, color = 'tab:blue')
-        im2, = plt.plot(temp_x[1], temp_y[1], linestyle='--', marker='o', label='line with marker', markersize = 4, color = 'tab:orange')
-        im3, = plt.plot(temp_x[2], temp_y[2], linestyle='--', marker='o', label='line with marker', markersize = 4, color = 'tab:green')
-        im4, = plt.plot(temp_x[3], temp_y[3], linestyle='--', marker='o', label='line with marker', markersize = 4, color = 'tab:red')
-        im5, = plt.plot(temp_x[4], temp_y[4], linestyle='--', marker='o', label='line with marker', markersize = 4, color = 'tab:purple')
-        im6, = plt.plot(temp_x[5], temp_y[5], linestyle='--', marker='o', label='line with marker', markersize = 4, color = 'tab:brown')
-        im7, = plt.plot(temp_x[6], temp_y[6], linestyle='--', marker='o', label='line with marker', markersize = 4, color = 'tab:pink')
-        im8, = plt.plot(temp_x[7], temp_y[7], linestyle='--', marker='o', label='line with marker', markersize = 4, color = 'tab:gray')
+    #     #     im, = plt.plot(temp_x[j], temp_y[j], linestyle='--', marker='o', label='line with marker', markersize = 4)
+    #     #     ims.append([im])
+    #     im1, = plt.plot(temp_x[0], temp_y[0], linestyle='--', marker='o', label='line with marker', markersize = 4, color = 'tab:blue')
+    #     im2, = plt.plot(temp_x[1], temp_y[1], linestyle='--', marker='o', label='line with marker', markersize = 4, color = 'tab:orange')
+    #     im3, = plt.plot(temp_x[2], temp_y[2], linestyle='--', marker='o', label='line with marker', markersize = 4, color = 'tab:green')
+    #     im4, = plt.plot(temp_x[3], temp_y[3], linestyle='--', marker='o', label='line with marker', markersize = 4, color = 'tab:red')
+    #     im5, = plt.plot(temp_x[4], temp_y[4], linestyle='--', marker='o', label='line with marker', markersize = 4, color = 'tab:purple')
+    #     im6, = plt.plot(temp_x[5], temp_y[5], linestyle='--', marker='o', label='line with marker', markersize = 4, color = 'tab:brown')
+    #     im7, = plt.plot(temp_x[6], temp_y[6], linestyle='--', marker='o', label='line with marker', markersize = 4, color = 'tab:pink')
+    #     im8, = plt.plot(temp_x[7], temp_y[7], linestyle='--', marker='o', label='line with marker', markersize = 4, color = 'tab:gray')
         
         
-        # print(type(im))
-        # print(type(plt.gcf()))
-        # im = plt.gcf()
-        plt.xlabel("x position/m", fontsize = label_size)
-        plt.ylabel("y position/m", fontsize = label_size)
-        plt.xlim([-1.5, 1.5])
-        plt.ylim([0, 3])
-        plt.title('Robots Tracking Result', fontsize = title_size)
-        plt.yticks(fontsize = ticks_size)
-        plt.xticks(fontsize = ticks_size)
+    #     # print(type(im))
+    #     # print(type(plt.gcf()))
+    #     # im = plt.gcf()
+    #     plt.xlabel("x position/m", fontsize = label_size)
+    #     plt.ylabel("y position/m", fontsize = label_size)
+    #     plt.xlim([-1.5, 1.5])
+    #     plt.ylim([0, 3])
+    #     plt.title('Robots Tracking Result', fontsize = title_size)
+    #     plt.yticks(fontsize = ticks_size)
+    #     plt.xticks(fontsize = ticks_size)
         
-        ims.append([im1, im2, im3, im4, im5, im6, im7, im8])
+    #     ims.append([im1, im2, im3, im4, im5, im6, im7, im8])
         
-    ani = animation.ArtistAnimation(fig, ims, interval = 10)
-    ani.save("test.gif", writer='pillow')
+    # ani = animation.ArtistAnimation(fig, ims, interval = 10)
+    # ani.save("test.gif", writer='pillow')
 
         
         
