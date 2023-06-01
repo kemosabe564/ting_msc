@@ -25,7 +25,7 @@ T = 110
 
 offs = 0
 
-f = 'controller_py/src/my_recording4.txt'
+f = 'controller_py/src/my_recording4_3.txt'
 
 # f = './data/data_ch7/saved_data_t0_RUN_test_OWA_noreset_low_mr.p'
 
@@ -36,7 +36,7 @@ f = 'controller_py/src/my_recording4.txt'
 # files = os.listdir(cwd)  # Get all the files in that directory
 # print("Files in %r: %s" % (cwd, files))
 
-N = 30
+N = 99
 robot_n = 4
 offs = 3
 if __name__ == "__main__":
@@ -74,10 +74,26 @@ if __name__ == "__main__":
     
     # print(time_in)    
     plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
-    plt.plot(time_in, 'x')
+    plt.plot(time_in, linestyle='--', marker='o', label='line with marker')
+    plt.xlabel("Loop", fontsize = label_size)
+    plt.ylabel("Time/s", fontsize = label_size)
+    plt.title('Computation time', fontsize = title_size)
+    plt.yticks(fontsize = ticks_size)
+    plt.xticks(fontsize = ticks_size)
+    plt.grid()
     
-    print(sum(time_in)/30)
+    print(sum(time_in)/N)
+    
+    
     plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
-    plt.plot(time_between, 'x')
-    print(sum(time_between)/30)
+    plt.plot(time_between, linestyle='--', marker='o', label='line with marker')
+    plt.xlabel("Loop", fontsize = label_size)
+    plt.ylabel("Time/s", fontsize = label_size)
+    plt.title('Communication time', fontsize = title_size)
+    plt.yticks(fontsize = ticks_size)
+    plt.xticks(fontsize = ticks_size)
+    plt.grid()
+    
+    
+    print(sum(time_between)/N)
     plt.show()
