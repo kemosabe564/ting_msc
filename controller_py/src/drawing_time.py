@@ -83,7 +83,7 @@ if __name__ == "__main__":
     plt.grid()
     
     print(sum(time_in)/N)
-    
+    print(sum((i - sum(time_in)/N) ** 2 for i in time_in) / len(time_in))
     
     plt.figure(figsize = (figsize_x, figsize_y), dpi = dpi_number)
     plt.plot(time_between, linestyle='--', marker='o', label='line with marker')
@@ -96,4 +96,5 @@ if __name__ == "__main__":
     
     
     print(sum(time_between)/N)
+    print(sum((i - sum(time_between)/N) ** 2 for i in time_between) / len(time_between))
     plt.show()
