@@ -13,12 +13,36 @@ source devel/setup.bash
 
 # normal step for running the experiment
 
+## robots and VM
+
+1. download the VM from this link: https://surfdrive.surf.nl/files/index.php/s/6UwWVbSCVMtV9jO, and import the VDI into virtualBox
+
+2. replace the content in "catkin_ws/src" with the files in this github 
+
+3. run following command:
+cd catkin_ws/
+catkin_make
+source devel/setup.bash 
+
+4. you might want to remake the elisa-3 lib if you change it, follow this:
+
+Rebuild the elisa-3 library: go to ~/catkin_ws/src/elisa3_node_cpp/src/pc-side-elisa3-library/linux
+then issue "make clean" then "make"
+
+
+https://www.gctronic.com/doc/index.php/Elisa#1._Install_the_radio_base-station_driver
+
+
+
+## camera
 prepare for the camera connection.
 
 1. use the ethernet cable in the lab to connect the Optitrack system.
 
 2. open the "motive" on lab's comupter, and in data streaming pannel, filling in the ip address (usually 192.168.1.123) of your ROS computer
 
+
+## experiment
 prepare for robot setup
 
 1. place the robot in the lab field, and record the x, y, z data for initialization.
@@ -36,8 +60,10 @@ strat the expriment
 2. roslaunch elisa3_node_cpp elisa3_swarm.launch
 
 3. make sure you finish the preset of the camera. Then run the camera with 
-
 roslaunch mocap_optitrack mocap_multidrone.launch
+
+4. go to controller_py file run
+python main.py
 
 
 
