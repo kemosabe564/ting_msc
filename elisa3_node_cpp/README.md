@@ -6,7 +6,7 @@ Elisa-3 ROS node based on roscpp; it support all the elisa-3 sensors.
 This package is maintained by [GCtronic](http://www.gctronic.com/).
 
 ## How to use
-For detailed informations about the node refer to the [elisa-3 ROS wiki](http://www.gctronic.com/doc/index.php/Elisa-3#ROS).
+For detailed information about the node refer to the [elisa-3 ROS wiki](http://www.gctronic.com/doc/index.php/Elisa-3#ROS).
 
 source devel/setup.bash
 
@@ -19,7 +19,7 @@ source devel/setup.bash
 
 2. replace the content in "catkin_ws/src" with the files in this github 
 
-3. run following command:
+3. run the following command:
 cd catkin_ws/
 catkin_make
 source devel/setup.bash 
